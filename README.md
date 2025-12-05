@@ -101,7 +101,8 @@ A **web-based digital licensing platform** that enables:
 
 ### 1. Clone the Repository
 
-git clone [https://github.com/your-username/railway-vendor-license-system.git](https://github.com/your-username/railway-vendor-license-system.git)
+git clone [https://github.com/kalviumcommunity/S86-1225-Synergy-Full-Stack-With-NextjsAnd-AWS-Azure-VendorVault.git](https://github.com/kalviumcommunity/S86-1225-Synergy-Full-Stack-With-NextjsAnd-AWS-Azure-VendorVault.git)
+
 cd railway-vendor-license-system
 
 ### 2. Install Dependencies
