@@ -1,6 +1,6 @@
-# 🚆 Railway Vendor Digital License & Verification System
+# 🚆 VendorVault — Railway Vendor Digital License & Verification System
 
-A full-stack web application built with **Next.js and Cloud Services (AWS/Azure)** to digitize the onboarding, licensing, renewal, and verification of railway station vendors such as tea stalls, snack shops, and book vendors.
+**VendorVault** is a full-stack web application built using **Next.js and Cloud Services (AWS/Azure)** to digitize the onboarding, licensing, renewal, and verification of railway station vendors such as tea stalls, snack shops, and book vendors.
 
 This platform replaces manual paper-based licensing with a **secure, cloud-hosted, QR-based digital verification system**.
 
@@ -8,125 +8,136 @@ This platform replaces manual paper-based licensing with a **secure, cloud-hoste
 
 ## 📌 Problem Statement
 
-Railway vendors still rely heavily on manual paperwork for licenses and renewals. This leads to:
+Railway vendors still rely heavily on **manual paperwork** for licenses and renewals. This results in:
 
-* Delayed approvals
-* Loss or damage of physical licenses
-* Difficult on-field verification
-* Lack of transparency and tracking
+- ⏳ Delayed approvals  
+- 📄 Loss or damage of physical licenses  
+- 🔍 Difficult on-field verification  
+- ❌ Lack of transparency & tracking  
 
 ---
 
 ## ✅ Solution Overview
 
-A **web-based digital licensing platform** that enables:
+**VendorVault** provides a **web-based digital licensing platform** that enables:
 
-* 🧾 Online vendor registration & license application
-* 🧑‍💼 Admin-based approval and license management
-* 🔍 Instant QR-based public verification
-* 🔄 Digital license renewal
-* ☁️ Secure cloud document storage
-* 📧 Automated notifications
+- 🧾 Online vendor registration & license application  
+- 🧑‍💼 Admin-based approval and license management  
+- 🔍 Instant QR-based public verification  
+- 🔄 Digital license renewal  
+- ☁️ Secure cloud document storage  
+- 📧 Automated email notifications  
 
 ---
 
 ## 👥 User Roles
 
-### Vendor
+### 👤 Vendor
+- Register & log in  
+- Apply for license  
+- Upload documents  
+- Track application status  
+- Renew license  
+- View & share QR-based digital license  
 
-* Register & log in
-* Apply for license
-* Upload documents
-* Track application status
-* Renew license
-* View & share QR-based digital license
+### 🧑‍💼 Admin (Railway Authority)
+- View vendor applications  
+- Approve / Reject licenses  
+- Generate License ID & QR code  
+- Manage renewals & revocations  
 
-### Admin (Railway Authority)
-
-* View vendor applications
-* Approve / Reject licenses
-* Generate License ID & QR code
-* Manage renewals & revocations
-
-### Inspector (Optional)
-
-* Scan QR code
-* Verify license in real time
-* Report violations
+### 🕵️ Inspector (Optional)
+- Scan QR code  
+- Verify license in real time  
+- Report violations  
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
+### 🎨 Frontend
+- Next.js (App Router)  
+- Tailwind CSS / Shadcn UI  
+- TypeScript  
 
-* Next.js (App Router)
-* Tailwind CSS / Shadcn UI
-* TypeScript
+### ⚙️ Backend
+- Next.js API Routes  
+- Prisma ORM  
+- PostgreSQL / MySQL / Azure SQL  
 
-### Backend
+### ☁️ Cloud Services
 
-* Next.js API Routes
-* Prisma ORM
-* PostgreSQL / MySQL / Azure SQL
+**AWS**
+- S3 – File Storage  
+- RDS – Database  
+- SES – Email Service  
+- Cognito – Authentication  
 
-### Cloud Services
+**OR**
 
-* AWS (S3, RDS, SES, Cognito)
-  OR
-* Azure (Blob Storage, Azure SQL, Azure AD B2C)
+**Azure**
+- Blob Storage  
+- Azure SQL  
+- Azure AD B2C  
 
-### Other Tools
-
-* QR Code Generator
-* JWT / NextAuth for authentication
-* Email notification service
+### 🔧 Other Tools
+- QR Code Generator  
+- JWT / NextAuth for authentication  
+- Email notification service  
 
 ---
 
 ## ✨ Core Features
 
-* Vendor registration & authentication
-* Online license application with document upload
-* Admin approval system
-* QR code generation for licenses
-* Public license verification page
-* License renewal system
-* Expiry notifications
-* Secure cloud document storage
+- ✅ Vendor registration & authentication  
+- ✅ Online license application with document upload  
+- ✅ Admin approval system  
+- ✅ QR code generation for licenses  
+- ✅ Public license verification page  
+- ✅ License renewal system  
+- ✅ Expiry notifications  
+- ✅ Secure cloud document storage  
 
 ---
 
 ## 🚀 Installation & Setup
 
-### 1. Clone the Repository
+### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/kalviumcommunity/S86-1225-Synergy-Full-Stack-With-NextjsAnd-AWS-Azure-VendorVault.git
+````
 
-git clone [https://github.com/kalviumcommunity/S86-1225-Synergy-Full-Stack-With-NextjsAnd-AWS-Azure-VendorVault.git](https://github.com/kalviumcommunity/S86-1225-Synergy-Full-Stack-With-NextjsAnd-AWS-Azure-VendorVault.git)
+### 2️⃣ Install Dependencies
 
-
-### 2. Install Dependencies
-
+```bash
 npm install
+```
 
-### 3. Environment Variables (.env)
+### 3️⃣ Configure Environment Variables (`.env`)
 
+```env
 DATABASE_URL=
 NEXTAUTH_SECRET=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_S3_BUCKET=
 EMAIL_SERVICE_API_KEY=
+```
 
-### 4. Run Database Migration
+### 4️⃣ Run Database Migration
 
+```bash
 npx prisma migrate dev
+```
 
-### 5. Start the Development Server
+### 5️⃣ Start the Development Server
 
+```bash
 npm run dev
+```
 
-Application will run on:
-[http://localhost:3000](http://localhost:3000)
+➡️ Application runs at:
+**[http://localhost:3000](http://localhost:3000)**
 
 ---
 
@@ -135,9 +146,11 @@ Application will run on:
 Each approved vendor receives a **QR Code**.
 Scanning it opens:
 
+```
 /verify/{licenseNumber}
+```
 
-Displays:
+### Displays:
 
 * Vendor Name
 * Stall Type
@@ -149,11 +162,11 @@ Displays:
 
 ## 🔐 Security Features
 
-* Password hashing
-* Role-based access control
-* Secure file uploads
-* Protected admin routes
-* Token-based authentication
+* 🔒 Password hashing
+* 👮 Role-based access control
+* 📁 Secure file uploads
+* 🛡️ Protected admin routes
+* 🔑 Token-based authentication
 
 ---
 
@@ -170,9 +183,11 @@ Displays:
 
 ## 📜 License
 
-This project is developed for academic and educational purposes only.
+This project is developed **for academic and educational purposes only**.
 
 ---
 
-## ⭐ If you like this project, give it a star!
+## ⭐ Support This Project
 
+If you like **VendorVault**, don’t forget to
+👉 **Star this repository on GitHub!** ⭐
