@@ -168,6 +168,6 @@ npm run dev
 
 # 🖼️ Screenshot of Local App Running
 
-![Image](../S86-1225-Synergy-Full-Stack-With-NextjsAnd-AWS-Azure-VendorVault/vendorvault/assets/project_setup.png)
+![Image](/vendorvault/assets/project_setup.png)
 
 
