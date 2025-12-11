@@ -1,173 +1,108 @@
-Below is a **clean, rewritten, submission-ready README.md** that fulfills all assignment requirements:
-
-* ✔ Clear project intro & problem statement
-* ✔ Folder structure + purpose of each folder
-* ✔ Naming conventions
-* ✔ Explanation of how the architecture supports **scalability & clarity**
-* ✔ Setup instructions
-* ✔ Screenshot section (with your provided screenshot)
+# VendorVault — TypeScript & ESLint Configuration
 
 ---
 
-# 🚆 VendorVault — Digital Railway Vendor Licensing & Verification System
+# 🛠️ TypeScript & ESLint Configuration
 
-VendorVault is a **full-stack Next.js platform** designed to modernize the licensing, renewal, and on-site verification of railway station vendors.
-The system replaces slow, paper-based processes with **digital licensing, cloud document storage, and QR-based verification**.
+This project is configured with strict TypeScript settings, ESLint, Prettier, and pre-commit hooks to ensure code quality and consistency across the team.
 
----
+## Strict TypeScript Configuration
 
-## 📌 Problem Statement
+The project uses strict TypeScript settings in `tsconfig.json` to catch potential errors early:
 
-Indian railway vendors currently depend on **manual paperwork**, which causes:
+- **`strict: true`** - Enables all strict type-checking options
+- **`noImplicitAny: true`** - Raises errors on expressions and declarations with an implied 'any' type
+- **`noUnusedLocals: true`** - Reports errors on unused local variables
+- **`noUnusedParameters: true`** - Reports errors on unused function parameters
+- **`forceConsistentCasingInFileNames: true`** - Ensures consistent file name casing across different operating systems
+- **`skipLibCheck: true`** - Skips type checking of declaration files for faster compilation
 
-* Delayed license approvals
-* Difficult manual inspections
-* High risk of lost or forged documents
-* No centralized tracking
+### Why Strict TypeScript?
 
-VendorVault solves this by offering a **secure, scalable, digital licensing system** for vendors, admins, and inspectors.
+Strict TypeScript mode significantly reduces runtime bugs by:
 
----
+- **Catching type mismatches at compile time** instead of runtime
+- **Preventing undefined/null reference errors** through strict null checks
+- **Eliminating unused code** that can cause confusion and maintenance issues
+- **Ensuring type safety** across the entire codebase
+- **Improving IDE autocomplete** and refactoring capabilities
 
-# 📁 Folder Structure & Purpose of Each Directory
-
-```
-root/
-│
-├── app/
-│   ├── admin/          # Admin dashboards, approval workflows
-│   ├── api/            # Next.js API routes (auth, vendor CRUD, verification)
-│   ├── auth/           # Authentication pages & logic
-│   ├── vendor/         # Vendor dashboard, license forms, uploads
-│   ├── verify/         # Public license verification route
-│   ├── favicon.ico
-│   ├── globals.css      # Global styling
-│   ├── layout.tsx       # App layout wrapper
-│   └── page.tsx         # Home page
-│
-├── components/         # Reusable UI components (form, buttons, cards, modals)
-│
-├── lib/                # Utility libs (db connection, auth helpers, S3/Azure utils)
-│
-├── services/           # Business-logic modules (email, license generator, QR code)
-│
-├── types/              # TypeScript interfaces & type definitions
-│
-├── utils/              # Helper functions—validation, formatting, constants
-│
-├── public/             # Static assets (icons, QR exports, images)
-│
-├── node_modules/       # Dependencies (auto-generated)
-│
-├── .gitignore
-├── package.json
-├── tsconfig.json
-├── next.config.ts
-└── README.md
-```
+This approach makes the codebase more reliable, easier to refactor, and safer for team collaboration.
 
 ---
 
-# 🏷️ Naming Conventions
+## ESLint + Prettier Setup
 
-### **Files & Folders**
+### ESLint Rules (`.eslintrc.json`)
 
-| Type            | Convention                      | Example                       |
-| --------------- | ------------------------------- | ----------------------------- |
-| Component Files | `PascalCase`                    | `VendorCard.tsx`              |
-| Utility Files   | `camelCase`                     | `formatDate.ts`               |
-| API Routes      | `lowercase` with hyphens        | `apply-license/route.ts`      |
-| Folders         | Meaningful, domain-driven names | `vendor`, `admin`, `services` |
+- **`no-console: "warn"`** - Warns about console statements (should use proper logging in production)
+- **`semi: ["error", "always"]`** - Enforces semicolons at the end of statements
+- **`quotes: ["error", "double"]`** - Enforces double quotes for string literals
 
-### **Database & Types**
+### Prettier Configuration (`.prettierrc`)
 
-* Models → **PascalCase** (`Vendor`, `License`)
-* Fields → **camelCase** (`licenseNumber`, `expiryDate`)
+- **`singleQuote: false`** - Uses double quotes for strings
+- **`semi: true`** - Adds semicolons at the end of statements
+- **`tabWidth: 2`** - Uses 2 spaces for indentation
+- **`trailingComma: "es5"`** - Adds trailing commas where valid in ES5
 
-### **Variables & Functions**
+### What These Rules Enforce
 
-* Functions → **camelCase** (`generateQrCode`)
-* Constants → `UPPER_SNAKE_CASE` (`MAX_FILE_SIZE`)
-
-This consistent naming improves readability, auto-completion, and teamwork clarity.
-
----
-
-# 🧱 Why This Structure? — Scalability & Clarity Reflection
-
-The project uses a **domain-driven folder structure**, which separates concerns and makes the codebase scalable for future sprints.
-
-### ✔ **Modular Logic**
-
-* `services/` keeps business logic independent of UI → easy to upgrade or reuse.
-* `lib/` isolates infrastructure (DB, storage, auth).
-
-### ✔ **Clear Role-based Flow**
-
-* Separate `vendor/`, `admin/`, and `verify/` routes reduce merge conflicts and improve team ownership.
-
-### ✔ **Maintainability**
-
-* UI components live in `components/`, enabling rapid UI expansion.
-* Types are centralized → reduces bugs and mismatches.
-
-### ✔ **Future Scaling Ready**
-
-Supports planned features such as:
-
-* Inspector mobile app
-* Analytics dashboards
-* Vendor category expansions
-* Cloud multi-region deployment
-
-The structure ensures each sprint can add new modules without rewriting the existing codebase.
+- ✅ **Consistent Code Style** - Everyone on the team writes code that looks the same
+- ✅ **Readability** - Double quotes and semicolons improve code clarity
+- ✅ **Maintainability** - Consistent formatting makes code reviews faster
+- ✅ **Fewer Merge Conflicts** - Automatic formatting reduces formatting-related conflicts
+- ✅ **Professional Quality** - Clean, consistent code is easier to debug and extend
 
 ---
 
-# ⚙️ Setup Instructions
+## Pre-Commit Hooks (Husky + lint-staged)
 
-### 1️⃣ Clone the repository
+The project uses **Husky** and **lint-staged** to automatically check and fix code before every commit:
+
+### How It Works
+
+1. When you run `git commit`, Husky triggers the pre-commit hook
+2. lint-staged runs ESLint and Prettier only on staged files
+3. If there are fixable issues, they're automatically corrected
+4. If there are unfixable errors, the commit is blocked until you fix them
+
+### Benefits for Team Consistency
+
+- 🔒 **Prevents Bad Code** - Broken or poorly formatted code never enters the repository
+- 👥 **Team Consistency** - All team members follow the same code quality standards
+- 🔧 **Automatic Fixes** - Most formatting and simple lint issues are fixed automatically
+- ⚡ **Faster Code Reviews** - Reviewers can focus on logic, not style issues
+- 🚀 **CI/CD Reliability** - Ensures all committed code passes quality checks
+
+This automation ensures that every commit meets quality standards without manual intervention.
+
+---
+
+## Running Quality Checks Manually
 
 ```bash
-git clone https://github.com/kalviumcommunity/S86-1225-Synergy-Full-Stack-With-NextjsAnd-AWS-Azure-VendorVault.git
+# Run ESLint to check for code issues
+cd vendorvault && npm run lint
+
+# Run Prettier to format all files
+cd vendorvault && npx prettier --write "**/*.{ts,tsx,js,jsx,json,css,md}"
+
+# Check if files are formatted correctly
+cd vendorvault && npx prettier --check "**/*.{ts,tsx,js,jsx,json,css,md}"
 ```
-
-### 2️⃣ Install dependencies
-
-```bash
-npm install
-```
-
-### 3️⃣ Create a `.env` file
-
-```env
-DATABASE_URL=
-NEXTAUTH_SECRET=
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_S3_BUCKET=
-EMAIL_SERVICE_API_KEY=
-```
-
-### 4️⃣ Run database migrations
-
-```bash
-npx prisma migrate dev
-```
-
-### 5️⃣ Start the development server
-
-```bash
-npm run dev
-```
-
-➡ Your app will run on
-**[http://localhost:3000](http://localhost:3000)**
 
 ---
 
-# 🖼️ Screenshot of Local App Running
+## Testing & Verification
 
-![Image](/vendorvault/assets/project_setup.png)
+The configuration has been tested and verified:
+
+- ✅ ESLint runs successfully without errors
+- ✅ Prettier formatted all project files
+- ✅ Pre-commit hooks are configured and ready
+- ✅ lint-staged will check staged files before commit
+
+All quality checks are in place to maintain code consistency and reliability throughout development.
 
 
