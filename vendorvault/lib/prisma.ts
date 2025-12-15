@@ -14,9 +14,18 @@ import { PrismaClient } from "@prisma/client";
 // exhausting your database connection limit.
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  "postgresql://postgres:4756@localhost:5432/railway_vendor_db";
+
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
+    datasources: {
+      db: {
+        url: databaseUrl,
+      },
+    },
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
