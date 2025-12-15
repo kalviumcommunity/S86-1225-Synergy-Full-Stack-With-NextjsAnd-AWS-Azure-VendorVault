@@ -1,0 +1,347 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+enum UserRole {
+  VENDOR
+  ADMIN
+  INSPECTOR
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  phone         String?   @unique
+  passwordHash  String    @map("password_hash")
+  name          String
+  role          UserRole  @default(VENDOR)
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  vendor           Vendor?
+  approvedLicenses License[]    @relation("ApprovedBy")
+  inspections      Inspection[]
+  notifications    Notification[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// ============================================
+// VENDOR MANAGEMENT
+// ============================================
+
+enum StallType {
+  TEA_STALL
+  SNACK_SHOP
+  BOOK_SHOP
+  MAGAZINE_STAND
+  FRUIT_SHOP
+  GENERAL_STORE
+  FAST_FOOD
+  ELECTRONICS
+  CLOTHING
+  OTHER
+}
+
+model Vendor {
+  id                      Int       @id @default(autoincrement())
+  userId                  Int       @unique @map("user_id")
+  businessName            String    @map("business_name")
+  stallType               StallType @map("stall_type")
+  stallDescription        String?   @map("stall_description") @db.Text
+  stationName             String    @map("station_name")
+  platformNumber          String?   @map("platform_number")
+  stallLocationDescription String?  @map("stall_location_description") @db.Text
+  stallPhotoUrl           String?   @map("stall_photo_url")
+  
+  // KYC Details
+  aadhaarNumber           String?   @unique @map("aadhaar_number")
+  panNumber               String?   @unique @map("pan_number")
+  gstNumber               String?   @map("gst_number")
+  
+  // Address
+  address                 String?   @db.Text
+  city                    String?
+  state                   String?
+  pincode                 String?
+  
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenses                License[]
+  documents               Document[]
+  
+  @@index([userId])
+  @@index([stationName])
+  @@index([stallType])
+  @@map("vendors")
+}
+
+// ============================================
+// LICENSE MANAGEMENT
+// ============================================
+
+enum LicenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  REVOKED
+  SUSPENDED
+}
+
+model License {
+  id                  Int            @id @default(autoincrement())
+  licenseNumber       String         @unique @map("license_number")
+  vendorId            Int            @map("vendor_id")
+  status              LicenseStatus  @default(PENDING)
+  
+  // Approval Details
+  approvedById        Int?           @map("approved_by_id")
+  approvedAt          DateTime?      @map("approved_at")
+  issuedAt            DateTime?      @map("issued_at")
+  expiresAt           DateTime?      @map("expires_at")
+  
+  // Rejection/Revocation Details
+  rejectionReason     String?        @map("rejection_reason") @db.Text
+  revocationReason    String?        @map("revocation_reason") @db.Text
+  
+  // QR Code
+  qrCodeData          String?        @unique @map("qr_code_data")
+  qrCodeUrl           String?        @map("qr_code_url")
+  
+  // Renewal tracking
+  isRenewal           Boolean        @default(false) @map("is_renewal")
+  previousLicenseId   Int?           @map("previous_license_id")
+  
+  // Metadata
+  remarks             String?        @db.Text
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+  
+  // Relations
+  vendor              Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  approvedBy          User?          @relation("ApprovedBy", fields: [approvedById], references: [id])
+  previousLicense     License?       @relation("LicenseRenewal", fields: [previousLicenseId], references: [id])
+  renewedLicenses     License[]      @relation("LicenseRenewal")
+  inspections         Inspection[]
+  
+  @@index([vendorId])
+  @@index([status])
+  @@index([licenseNumber])
+  @@index([expiresAt])
+  @@index([approvedById])
+  @@map("licenses")
+}
+
+// ============================================
+// DOCUMENT MANAGEMENT
+// ============================================
+
+enum DocumentType {
+  ID_PROOF_AADHAAR
+  ID_PROOF_PAN
+  ID_PROOF_VOTER_ID
+  ID_PROOF_DRIVING_LICENSE
+  POLICE_VERIFICATION
+  BUSINESS_REGISTRATION
+  GST_CERTIFICATE
+  STALL_PHOTO
+  PREVIOUS_LICENSE
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Document {
+  id              Int            @id @default(autoincrement())
+  vendorId        Int            @map("vendor_id")
+  documentType    DocumentType   @map("document_type")
+  fileName        String         @map("file_name")
+  fileUrl         String         @map("file_url")
+  fileSize        Int?           @map("file_size") // in bytes
+  mimeType        String?        @map("mime_type")
+  
+  // Verification
+  status          DocumentStatus @default(PENDING)
+  verificationNotes String?      @map("verification_notes") @db.Text
+  
+  // S3/Azure Blob metadata
+  storageKey      String         @map("storage_key")
+  storageBucket   String?        @map("storage_bucket")
+  
+  uploadedAt      DateTime       @default(now()) @map("uploaded_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  
+  // Relations
+  vendor          Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  @@index([vendorId])
+  @@index([documentType])
+  @@index([status])
+  @@map("documents")
+}
+
+// ============================================
+// INSPECTION & COMPLIANCE
+// ============================================
+
+enum InspectionStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  WARNING_ISSUED
+  FINE_IMPOSED
+}
+
+model Inspection {
+  id              Int              @id @default(autoincrement())
+  licenseId       Int              @map("license_id")
+  inspectorId     Int              @map("inspector_id")
+  
+  status          InspectionStatus
+  remarks         String?          @db.Text
+  
+  // Issues found
+  hygieneIssue    Boolean          @default(false) @map("hygiene_issue")
+  locationIssue   Boolean          @default(false) @map("location_issue")
+  documentIssue   Boolean          @default(false) @map("document_issue")
+  otherIssue      String?          @map("other_issue") @db.Text
+  
+  // Fine/Action
+  fineAmount      Decimal?         @map("fine_amount") @db.Decimal(10, 2)
+  actionTaken     String?          @map("action_taken") @db.Text
+  
+  // Location & Time
+  inspectionLocation String?       @map("inspection_location")
+  inspectedAt     DateTime         @default(now()) @map("inspected_at")
+  
+  // Photo evidence
+  photoUrls       String[]         @default([]) @map("photo_urls")
+  
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  
+  // Relations
+  license         License          @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  inspector       User             @relation(fields: [inspectorId], references: [id])
+  
+  @@index([licenseId])
+  @@index([inspectorId])
+  @@index([status])
+  @@index([inspectedAt])
+  @@map("inspections")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+enum NotificationType {
+  APPLICATION_SUBMITTED
+  APPLICATION_APPROVED
+  APPLICATION_REJECTED
+  LICENSE_EXPIRING_SOON
+  LICENSE_EXPIRED
+  LICENSE_REVOKED
+  INSPECTION_SCHEDULED
+  INSPECTION_COMPLETED
+  DOCUMENT_VERIFIED
+  DOCUMENT_REJECTED
+  RENEWAL_REMINDER
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+model Notification {
+  id              Int                 @id @default(autoincrement())
+  userId          Int                 @map("user_id")
+  type            NotificationType
+  channel         NotificationChannel
+  
+  title           String
+  message         String              @db.Text
+  
+  // Related entities
+  licenseId       Int?                @map("license_id")
+  inspectionId    Int?                @map("inspection_id")
+  
+  // Status
+  isRead          Boolean             @default(false) @map("is_read")
+  isSent          Boolean             @default(false) @map("is_sent")
+  sentAt          DateTime?           @map("sent_at")
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  
+  // Relations
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================
+// AUDIT LOG (optional but recommended)
+// ============================================
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  REVOKE
+  SUSPEND
+  VERIFY
+}
+
+model AuditLog {
+  id              Int         @id @default(autoincrement())
+  userId          Int?        @map("user_id")
+  action          AuditAction
+  entityType      String      @map("entity_type") // "License", "Vendor", "Document", etc.
+  entityId        Int         @map("entity_id")
+  
+  oldValues       Json?       @map("old_values")
+  newValues       Json?       @map("new_values")
+  
+  ipAddress       String?     @map("ip_address")
+  userAgent       String?     @map("user_agent")
+  
+  createdAt       DateTime    @default(now()) @map("created_at")
+  
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

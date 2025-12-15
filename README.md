@@ -28,13 +28,17 @@ A comprehensive vendor management and licensing system built with **Next.js 16**
 
 ### Backend
 - **Next.js API Routes** - Serverless API endpoints
-- **Prisma ORM** - Database abstraction and migrations
+- **Prisma ORM 6.2.0** - Database abstraction and migrations
 - **Node.js 20 Alpine** - Lightweight runtime in Docker
+- **bcryptjs** - Password hashing for secure authentication
+- **QRCode** - QR code generation for license verification
 
 ### Database & Storage
-- **Prisma Client** - Type-safe database queries
-- **AWS S3** - File uploads and storage
-- **Azure Services** - Cloud integration support
+- **PostgreSQL 15** - Primary relational database (normalized schema)
+- **Prisma Client** - Type-safe database queries with auto-generated types
+- **Redis 7** - Session caching and performance optimization
+- **AWS S3** - Document storage and file uploads
+- **Azure Blob Storage** - Alternative cloud storage option
 
 ### DevOps & Deployment
 - **Docker** - Containerization
@@ -74,9 +78,13 @@ vendorvault/
 │   └── VendorForm.tsx           # Vendor form component
 ├── lib/                         # Utility functions
 │   ├── auth.ts                  # Authentication logic
-│   ├── prisma.ts               # Prisma client setup
+│   ├── prisma.ts               # Prisma client singleton setup
 │   ├── qr.ts                    # QR code generation
 │   └── s3.ts                    # AWS S3 integration
+├── prisma/                      # Database schema and migrations
+│   ├── schema.prisma            # Prisma schema definition
+│   ├── seed.ts                  # Database seeding script
+│   └── migrations/              # Migration history
 ├── services/                    # Business logic
 │   ├── email.service.ts         # Email notifications
 │   ├── license.service.ts       # License management
@@ -88,12 +96,16 @@ vendorvault/
 │   ├── formatters.ts           # Data formatting utilities
 │   └── validators.ts           # Input validation
 ├── public/                      # Static assets
+├── .env.example                 # Environment variable template
 ├── Dockerfile                   # Docker image configuration
-├── docker-compose.yml          # Multi-container setup
 ├── next.config.ts              # Next.js configuration
 ├── tsconfig.json               # TypeScript configuration
 ├── package.json                # Dependencies and scripts
-└── README.md                    # This file
+└── README.md                    # Main documentation
+├── docker-compose.yml          # Multi-container setup
+├── DATABASE_SCHEMA.md          # Complete schema documentation
+├── DATABASE_SETUP.md           # Setup guide
+└── ER_DIAGRAM.md               # Entity relationship diagram
 ```
 
 ---
@@ -159,14 +171,29 @@ Build Status: ✅ ZERO ERRORS
 
 3. **Set up environment variables:**
    ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your configuration
+   cp .env.example .env
+   # Edit .env with your configuration
    ```
 
-4. **Run database migrations (if using Prisma):**
+4. **Start PostgreSQL with Docker:**
    ```bash
-   npx prisma migrate dev
+   # From project root
+   cd ..
+   docker-compose up -d db
    ```
+
+5. **Run database migrations:**
+   ```bash
+   npm run db:migrate
+   # When prompted, name it: init_schema
+   ```
+
+6. **Seed the database with sample data:**
+   ```bash
+   npm run db:seed
+   ```
+
+For detailed database setup instructions, see [DATABASE_SETUP.md](DATABASE_SETUP.md)
 
 ### Development
 
@@ -652,18 +679,78 @@ npx tsc --noEmit
 
 ---
 
+## � Database Architecture
+
+### Normalized PostgreSQL Schema (3NF)
+
+The VendorVault database follows **Third Normal Form (3NF)** with 9 core entities:
+
+| Entity | Purpose | Key Relationships |
+|--------|---------|-------------------|
+| **User** | Authentication & roles | 1:1 with Vendor |
+| **Vendor** | Business information | 1:* with License, Document |
+| **License** | License lifecycle | Self-referential (renewals) |
+| **Document** | KYC documents | *:1 with Vendor |
+| **Inspection** | Field inspections | *:1 with License, Inspector |
+| **Notification** | Multi-channel alerts | *:1 with User |
+| **AuditLog** | Immutable audit trail | Records all critical actions |
+
+**Schema Features:**
+- ✅ Indexed foreign keys for fast joins
+- ✅ Cascade delete where appropriate
+- ✅ Enum types for consistent status values
+- ✅ JSON fields for flexible audit data
+- ✅ Timestamp tracking on all entities
+
+**Documentation:**
+- 📖 [Complete Schema Documentation](DATABASE_SCHEMA.md)
+- 📖 [Setup Guide](DATABASE_SETUP.md)
+- 📖 [ER Diagram](ER_DIAGRAM.md)
+
+### Database Commands
+
+```bash
+# Generate Prisma Client
+npm run db:generate
+
+# Create and apply migration
+npm run db:migrate
+
+# Seed database with sample data
+npm run db:seed
+
+# Open Prisma Studio (GUI)
+npm run db:studio
+
+# Push schema changes (dev only)
+npm run db:push
+
+# Reset database (WARNING: deletes all data)
+npm run db:reset
+```
+
+---
+
 ## 📦 Dependencies
 
 ### Core
-- `next` - React framework
-- `react` - UI library
-- `typescript` - Type safety
-- `@prisma/client` - Database ORM
+- `next@16.0.8` - React framework with App Router
+- `react@19.2.1` - UI library
+- `typescript@5` - Type safety
+- `@prisma/client@6.2.0` - Type-safe database ORM
+- `prisma@6.2.0` - Prisma CLI and migrations
+
+### Authentication & Security
+- `bcryptjs@2.4.3` - Password hashing
+- `@types/bcryptjs` - TypeScript types
 
 ### Utilities
-- `tailwindcss` - CSS framework
-- `eslint` - Code linting
+- `qrcode@1.5.4` - QR code generation for licenses
+- `zod@3.24.1` - Schema validation
+- `tailwindcss@4` - Utility-first CSS framework
+- `eslint@9` - Code linting
 - `postcss` - CSS processing
+- `tsx@4.19.2` - TypeScript execution (for seed scripts)
 
 ---
 
@@ -680,24 +767,55 @@ npx tsc --noEmit
 
 ## 📝 Environment Variables
 
-Create a `.env.local` file with:
+Create a `.env` file with:
 
 ```env
-# Database
-DATABASE_URL=your_database_connection_string
+# ============================================
+# DATABASE CONFIGURATION
+# ============================================
+DATABASE_URL="postgresql://postgres:password@localhost:5432/vendorvault_db"
+REDIS_URL="redis://localhost:6379"
 
-# AWS S3
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
-AWS_S3_BUCKET=your_bucket_name
-AWS_REGION=us-east-1
+# ============================================
+# AUTHENTICATION
+# ============================================
+NEXTAUTH_SECRET="your-secret-key-here-change-in-production"
+NEXTAUTH_URL="http://localhost:3000"
+JWT_SECRET="your_jwt_secret_here"
 
-# Azure (if using)
-AZURE_CONNECTION_STRING=your_azure_connection
+# ============================================
+# AWS S3 CONFIGURATION (for document storage)
+# ============================================
+AWS_REGION="us-east-1"
+AWS_ACCESS_KEY_ID="your-access-key"
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+AWS_S3_BUCKET_NAME="vendorvault-documents"
 
-# Auth
-NEXT_PUBLIC_AUTH_URL=http://localhost:3000
-SECRET_KEY=your_secret_key
+# ============================================
+# AZURE BLOB STORAGE (alternative to S3)
+# ============================================
+AZURE_STORAGE_CONNECTION_STRING="your-connection-string"
+AZURE_STORAGE_CONTAINER_NAME="vendorvault-documents"
+
+# ============================================
+# EMAIL SERVICE
+# ============================================
+EMAIL_FROM="noreply@vendorvault.com"
+EMAIL_PROVIDER="aws-ses"
+AWS_SES_REGION="us-east-1"
+
+# ============================================
+# CLIENT-SIDE (exposed to browser)
+# ============================================
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_VERIFY_URL="http://localhost:3000/verify"
+NEXT_PUBLIC_API_BASE_URL="http://localhost:3000/api"
+```
+
+**Quick Setup:**
+```bash
+cp .env.example .env
+# Edit .env with your values
 ```
 
 ---
