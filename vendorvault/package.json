@@ -23,7 +23,7 @@
     ]
   },
   "dependencies": {
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^6.19.1",
     "bcryptjs": "^2.4.3",
     "next": "16.0.8",
     "qrcode": "^1.5.4",
@@ -45,7 +45,7 @@
     "husky": "^8.0.3",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
-    "prisma": "^6.2.0",
+    "prisma": "^6.19.1",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5"

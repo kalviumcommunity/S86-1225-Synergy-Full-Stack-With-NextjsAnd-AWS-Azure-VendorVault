@@ -35,7 +35,7 @@ npm run db:seed
 # 7. Start the development server
 npm run dev
 ```
-
+ 
 The application will be available at `http://localhost:3000`
 
 ### Option 2: Docker Setup
