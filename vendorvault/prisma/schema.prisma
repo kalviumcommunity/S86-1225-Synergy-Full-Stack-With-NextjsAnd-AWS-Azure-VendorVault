@@ -93,6 +93,8 @@ model Vendor {
   @@index([userId])
   @@index([stationName])
   @@index([stallType])
+  @@index([createdAt])
+  @@index([stationName, stallType])  // Composite index for multi-field queries
   @@map("vendors")
 }
 
@@ -150,6 +152,9 @@ model License {
   @@index([licenseNumber])
   @@index([expiresAt])
   @@index([approvedById])
+  @@index([createdAt])
+  @@index([status, expiresAt])  // Composite: Find expiring licenses by status
+  @@index([vendorId, status])  // Composite: Find vendor's licenses by status
   @@map("licenses")
 }
 
@@ -202,6 +207,9 @@ model Document {
   @@index([vendorId])
   @@index([documentType])
   @@index([status])
+  @@index([uploadedAt])
+  @@index([vendorId, documentType])  // Composite: Find vendor's documents by type
+  @@index([vendorId, status])  // Composite: Find vendor's documents by verification status
   @@map("documents")
 }
 
@@ -252,6 +260,8 @@ model Inspection {
   @@index([inspectorId])
   @@index([status])
   @@index([inspectedAt])
+  @@index([licenseId, status])  // Composite: Find license's inspections by status
+  @@index([inspectorId, inspectedAt])  // Composite: Find inspector's inspections by date
   @@map("inspections")
 }
 
@@ -306,6 +316,8 @@ model Notification {
   @@index([type])
   @@index([isRead])
   @@index([createdAt])
+  @@index([userId, isRead])  // Composite: Find user's unread notifications
+  @@index([userId, type])  // Composite: Filter user's notifications by type
   @@map("notifications")
 }
 
@@ -343,5 +355,7 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([action])
   @@index([createdAt])
+  @@index([userId, action])  // Composite: Find user's audit trail
+  @@index([entityType, action])  // Composite: Find entity change history
   @@map("audit_logs")
 }
