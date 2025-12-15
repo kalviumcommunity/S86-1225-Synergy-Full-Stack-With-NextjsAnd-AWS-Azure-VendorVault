@@ -7,8 +7,10 @@ services:
     container_name: nextjs_app
     ports:
       - "3000:3000"
+    env_file:
+      - ./vendorvault/.env
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/vendorvault_db
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@db:5432/${DB_NAME}
       - REDIS_URL=redis://redis:6379
     depends_on:
       - db
@@ -22,8 +24,8 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: vendorvault_db
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
