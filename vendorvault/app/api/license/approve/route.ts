@@ -7,38 +7,26 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { approveLicense } from "@/services/license.service";
+import { licenseApproveSchema } from "@/lib/schemas/licenseSchema";
+import { validateRequestData } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = ["licenseId", "approvedById", "expiresAt"];
-    const missingFields = requiredFields.filter((field) => !body[field]);
-
-    if (missingFields.length > 0) {
-      return ApiErrors.VALIDATION_ERROR({
-        missingFields,
-        message: `Missing required fields: ${missingFields.join(", ")}`,
-      });
+    // Validate request data with Zod
+    const validation = await validateRequestData(request, licenseApproveSchema);
+    if (!validation.success) {
+      return validation.response;
     }
 
-    // Validate expiresAt is a valid date
-    const expiresAt = new Date(body.expiresAt);
-    if (isNaN(expiresAt.getTime())) {
-      return ApiErrors.BAD_REQUEST("Invalid expiration date format");
-    }
-
-    // Check if expiresAt is in the future
-    if (expiresAt <= new Date()) {
-      return ApiErrors.BAD_REQUEST("Expiration date must be in the future");
-    }
+    const body = validation.data;
 
     // Approve license
     const license = await approveLicense({
-      licenseId: Number(body.licenseId),
-      approvedById: Number(body.approvedById),
-      expiresAt,
+      licenseId: request.nextUrl.searchParams.get("licenseId")
+        ? Number(request.nextUrl.searchParams.get("licenseId"))
+        : 0,
+      approvedById: body.approvedById,
+      expiresAt: new Date(body.expiresAt),
     });
 
     return successResponse(license, "License approved successfully");

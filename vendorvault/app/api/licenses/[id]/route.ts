@@ -9,6 +9,8 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
+import { licenseUpdateSchema } from "@/lib/schemas/licenseSchema";
+import { validateRequestData } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -78,7 +80,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return ApiErrors.BAD_REQUEST("Invalid license ID");
     }
 
-    const body = await request.json();
+    // Validate request data with Zod
+    const validation = await validateRequestData(request, licenseUpdateSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const body = validation.data;
 
     // Check if license exists
     const existingLicense = await prisma.license.findUnique({
@@ -93,10 +101,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const license = await prisma.license.update({
       where: { id: licenseId },
       data: {
-        ...(body.status && { status: body.status }),
-        ...(body.remarks && { remarks: body.remarks }),
-        ...(body.qrCodeUrl && { qrCodeUrl: body.qrCodeUrl }),
-        ...(body.qrCodeData && { qrCodeData: body.qrCodeData }),
+        ...(body.expiresAt && { expiresAt: new Date(body.expiresAt) }),
+        ...(body.notes && { remarks: body.notes }),
       },
       include: {
         vendor: {

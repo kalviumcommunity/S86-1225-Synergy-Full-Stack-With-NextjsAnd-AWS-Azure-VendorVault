@@ -13,6 +13,8 @@ import {
   parsePaginationParams,
   calculatePagination,
 } from "@/lib/api-response";
+import { licenseCreateSchema } from "@/lib/schemas/licenseSchema";
+import { validateRequestData } from "@/lib/validation";
 import { createLicense } from "@/services/license.service";
 import { prisma } from "@/lib/prisma";
 
@@ -110,27 +112,20 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = ["vendorId", "licenseNumber"];
-    const missingFields = requiredFields.filter((field) => !body[field]);
-
-    if (missingFields.length > 0) {
-      return ApiErrors.VALIDATION_ERROR({
-        missingFields,
-        message: `Missing required fields: ${missingFields.join(", ")}`,
-      });
+    // Validate request data with Zod
+    const validation = await validateRequestData(request, licenseCreateSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const body = validation.data;
 
     // Create license
     const license = await createLicense({
-      vendorId: Number(body.vendorId),
+      vendorId: body.vendorId,
       licenseNumber: body.licenseNumber,
       isRenewal: body.isRenewal || false,
-      previousLicenseId: body.previousLicenseId
-        ? Number(body.previousLicenseId)
-        : undefined,
+      previousLicenseId: body.previousLicenseId,
     });
 
     return successResponse(

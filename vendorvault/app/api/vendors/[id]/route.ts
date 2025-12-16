@@ -13,6 +13,8 @@ import {
   updateVendor,
   deleteVendor,
 } from "@/services/vendor.services";
+import { vendorUpdateSchema } from "@/lib/schemas/vendorSchema";
+import { validateRequestData } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -60,7 +62,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return ApiErrors.BAD_REQUEST("Invalid vendor ID");
     }
 
-    const body = await request.json();
+    // Validate request data with Zod
+    const validation = await validateRequestData(request, vendorUpdateSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const body = validation.data;
 
     // Update vendor
     const vendor = await updateVendor(vendorId, body);
