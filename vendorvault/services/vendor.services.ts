@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Vendor, User, StallType } from "@prisma/client";
+import { Vendor, StallType } from "@prisma/client";
 
 /**
  * VENDOR SERVICE - Transaction & Query Optimization
@@ -31,7 +31,9 @@ interface CreateVendorInput {
  * Demonstrates atomicity: Vendor only created if user validation succeeds
  * Uses select to avoid over-fetching
  */
-export async function createVendor(data: CreateVendorInput): Promise<Vendor> {
+export async function createVendor(
+  data: CreateVendorInput
+): Promise<Partial<Vendor>> {
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Step 1: Verify user exists and has VENDOR role
@@ -183,7 +185,7 @@ export async function getVendorsByStation(
 export async function updateVendor(
   vendorId: number,
   data: Partial<CreateVendorInput>
-): Promise<Vendor> {
+): Promise<Partial<Vendor>> {
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Verify vendor exists
@@ -290,7 +292,7 @@ export async function updateVendorKYC(
     panNumber?: string;
     gstNumber?: string;
   }
-): Promise<Vendor> {
+): Promise<Partial<Vendor>> {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const vendor = await tx.vendor.findUnique({
@@ -344,6 +346,91 @@ export async function updateVendorKYC(
     return result;
   } catch (error) {
     console.error("❌ Transaction failed - Updating KYC details:", {
+      error: error instanceof Error ? error.message : String(error),
+      vendorId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Get all vendors with pagination and filtering
+ */
+export async function getAllVendors(options: {
+  skip: number;
+  take: number;
+  filters?: {
+    stationName?: string;
+    stallType?: string;
+    city?: string;
+  };
+}): Promise<{ vendors: Partial<Vendor>[]; total: number }> {
+  try {
+    const where: {
+      stationName?: string;
+      stallType?: StallType;
+      city?: string;
+    } = {};
+
+    if (options.filters?.stationName) {
+      where.stationName = options.filters.stationName;
+    }
+    if (options.filters?.stallType) {
+      where.stallType = options.filters.stallType as StallType;
+    }
+    if (options.filters?.city) {
+      where.city = options.filters.city;
+    }
+
+    const [vendors, total] = await Promise.all([
+      prisma.vendor.findMany({
+        where,
+        skip: options.skip,
+        take: options.take,
+        select: {
+          id: true,
+          businessName: true,
+          stallType: true,
+          stationName: true,
+          platformNumber: true,
+          city: true,
+          state: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      prisma.vendor.count({ where }),
+    ]);
+
+    return { vendors, total };
+  } catch (error) {
+    console.error("❌ Error fetching vendors:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete vendor
+ */
+export async function deleteVendor(vendorId: number): Promise<void> {
+  try {
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+    });
+
+    if (!vendor) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    await prisma.vendor.delete({
+      where: { id: vendorId },
+    });
+
+    console.log("✅ Vendor deleted successfully:", vendorId);
+  } catch (error) {
+    console.error("❌ Error deleting vendor:", {
       error: error instanceof Error ? error.message : String(error),
       vendorId,
     });

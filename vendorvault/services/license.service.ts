@@ -33,7 +33,7 @@ interface RejectLicenseInput {
  */
 export async function createLicense(
   data: CreateLicenseInput
-): Promise<License> {
+): Promise<Partial<License>> {
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Step 1: Verify vendor exists
@@ -94,7 +94,7 @@ export async function createLicense(
  */
 export async function approveLicense(
   data: ApproveLicenseInput
-): Promise<License> {
+): Promise<Partial<License>> {
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Step 1: Fetch and validate license
@@ -186,7 +186,7 @@ export async function approveLicense(
  */
 export async function rejectLicense(
   data: RejectLicenseInput
-): Promise<License> {
+): Promise<Partial<License>> {
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Step 1: Fetch license
@@ -389,7 +389,7 @@ export async function renewLicense(
   oldLicenseId: number,
   newLicenseNumber: string,
   expiresAt: Date
-): Promise<{ oldLicense: License; newLicense: License }> {
+): Promise<{ oldLicense: Partial<License>; newLicense: Partial<License> }> {
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Step 1: Fetch old license
