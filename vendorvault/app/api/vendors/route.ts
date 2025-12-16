@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching vendors:", error);
 
     if (error instanceof Error) {
-      return errorResponse("FETCH_ERROR", error.message, 500);
+      return errorResponse(error.message, "FETCH_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to fetch vendors");

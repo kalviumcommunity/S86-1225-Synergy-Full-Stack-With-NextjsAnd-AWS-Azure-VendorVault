@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     console.error("Error verifying license:", error);
 
     if (error instanceof Error) {
-      return errorResponse("VERIFICATION_ERROR", error.message, 500);
+      return errorResponse(error.message, "VERIFICATION_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to verify license");

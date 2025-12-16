@@ -59,7 +59,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     console.error("Error fetching license:", error);
 
     if (error instanceof Error) {
-      return errorResponse("FETCH_ERROR", error.message, 500);
+      return errorResponse(error.message, "FETCH_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to fetch license");
@@ -114,7 +114,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error("Error updating license:", error);
 
     if (error instanceof Error) {
-      return errorResponse("UPDATE_ERROR", error.message, 400);
+      return errorResponse(error.message, "UPDATE_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to update license");
@@ -157,7 +157,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     console.error("Error deleting license:", error);
 
     if (error instanceof Error) {
-      return errorResponse("DELETE_ERROR", error.message, 400);
+      return errorResponse(error.message, "DELETE_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to delete license");

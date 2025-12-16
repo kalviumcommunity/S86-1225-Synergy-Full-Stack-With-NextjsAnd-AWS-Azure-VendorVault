@@ -41,7 +41,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     console.error("Error fetching vendor:", error);
 
     if (error instanceof Error) {
-      return errorResponse("FETCH_ERROR", error.message, 500);
+      return errorResponse(error.message, "FETCH_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to fetch vendor");
@@ -73,7 +73,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (error.message.includes("not found")) {
         return ApiErrors.NOT_FOUND("Vendor");
       }
-      return errorResponse("UPDATE_ERROR", error.message, 400);
+      return errorResponse(error.message, "UPDATE_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to update vendor");
@@ -102,7 +102,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       if (error.message.includes("not found")) {
         return ApiErrors.NOT_FOUND("Vendor");
       }
-      return errorResponse("DELETE_ERROR", error.message, 400);
+      return errorResponse(error.message, "DELETE_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to delete vendor");

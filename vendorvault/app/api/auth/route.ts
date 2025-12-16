@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     console.error("Error authenticating user:", error);
 
     if (error instanceof Error) {
-      return errorResponse("AUTH_ERROR", error.message, 500);
+      return errorResponse(error.message, "AUTH_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Authentication failed");
