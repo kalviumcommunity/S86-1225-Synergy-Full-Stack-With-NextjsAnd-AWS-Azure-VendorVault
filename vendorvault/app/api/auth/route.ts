@@ -8,24 +8,21 @@ import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { loginSchema } from "@/lib/schemas/authSchema";
+import { validateRequestData } from "@/lib/validation";
 
 /**
  * POST /api/auth - Login
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = ["email", "password"];
-    const missingFields = requiredFields.filter((field) => !body[field]);
-
-    if (missingFields.length > 0) {
-      return ApiErrors.VALIDATION_ERROR({
-        missingFields,
-        message: `Missing required fields: ${missingFields.join(", ")}`,
-      });
+    // Validate request data with Zod
+    const validation = await validateRequestData(request, loginSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const body = validation.data;
 
     // Find user by email
     const user = await prisma.user.findUnique({

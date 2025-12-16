@@ -7,38 +7,22 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { createVendor } from "@/services/vendor.services";
-import { StallType } from "@prisma/client";
+import { vendorApplySchema } from "@/lib/schemas/vendorSchema";
+import { validateRequestData } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = [
-      "userId",
-      "businessName",
-      "stallType",
-      "stationName",
-    ];
-    const missingFields = requiredFields.filter((field) => !body[field]);
-
-    if (missingFields.length > 0) {
-      return ApiErrors.VALIDATION_ERROR({
-        missingFields,
-        message: `Missing required fields: ${missingFields.join(", ")}`,
-      });
+    // Validate request data with Zod
+    const validation = await validateRequestData(request, vendorApplySchema);
+    if (!validation.success) {
+      return validation.response;
     }
 
-    // Validate stallType enum
-    if (!Object.values(StallType).includes(body.stallType)) {
-      return ApiErrors.BAD_REQUEST(
-        `Invalid stall type. Must be one of: ${Object.values(StallType).join(", ")}`
-      );
-    }
+    const body = validation.data;
 
     // Create vendor application
     const vendor = await createVendor({
-      userId: Number(body.userId),
+      userId: body.userId,
       businessName: body.businessName,
       stallType: body.stallType,
       stationName: body.stationName,
