@@ -384,7 +384,590 @@ npx prisma studio
 
 ---
 
-## 📖 Documentation Files
+## � API Route Structure and Documentation
+
+### RESTful API Design
+
+VendorVault follows **RESTful conventions** with predictable, resource-based routes. All endpoints return consistent JSON responses with proper HTTP status codes.
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Response Format
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation successful",
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 100,
+    "totalPages": 10
+  }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Error description",
+    "details": { ... }
+  }
+}
+```
+
+### HTTP Status Codes
+
+| Code | Meaning | Usage |
+|------|---------|-------|
+| 200 | OK | Successful GET/PUT |
+| 201 | Created | Successful POST (resource created) |
+| 204 | No Content | Successful DELETE |
+| 400 | Bad Request | Invalid input/validation error |
+| 401 | Unauthorized | Authentication required |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource doesn't exist |
+| 409 | Conflict | Resource already exists |
+| 500 | Internal Server Error | Server-side error |
+
+---
+
+### API Endpoints
+
+#### 1. Authentication
+
+##### POST `/api/auth`
+Login with email and password.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/auth \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "vendor@example.com",
+    "password": "password123"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 1,
+      "email": "vendor@example.com",
+      "name": "John Doe",
+      "role": "VENDOR"
+    },
+    "token": "JWT_TOKEN_HERE"
+  },
+  "message": "Login successful"
+}
+```
+
+---
+
+#### 2. Vendors
+
+##### GET `/api/vendors`
+Get all vendors with pagination and filtering.
+
+**Query Parameters:**
+- `page` (number, default: 1) - Page number
+- `limit` (number, default: 10, max: 100) - Items per page
+- `stationName` (string, optional) - Filter by station
+- `stallType` (string, optional) - Filter by stall type
+- `city` (string, optional) - Filter by city
+
+**Request:**
+```bash
+curl -X GET "http://localhost:3000/api/vendors?page=1&limit=10&stationName=Mumbai%20Central"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "businessName": "Tea Shop",
+      "stallType": "TEA_STALL",
+      "stationName": "Mumbai Central"
+    }
+  ],
+  "message": "Vendors retrieved successfully",
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 45,
+    "totalPages": 5
+  }
+}
+```
+
+##### GET `/api/vendors/[id]`
+Get vendor by ID.
+
+**Request:**
+```bash
+curl -X GET http://localhost:3000/api/vendors/1
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "businessName": "Tea Shop",
+    "stallType": "TEA_STALL",
+    "stationName": "Mumbai Central",
+    "platformNumber": "1",
+    "address": "Platform 1, Mumbai Central"
+  },
+  "message": "Vendor retrieved successfully"
+}
+```
+
+##### PUT `/api/vendors/[id]`
+Update vendor details.
+
+**Request:**
+```bash
+curl -X PUT http://localhost:3000/api/vendors/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "businessName": "Updated Tea Shop",
+    "platformNumber": "2"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "businessName": "Updated Tea Shop",
+    "platformNumber": "2"
+  },
+  "message": "Vendor updated successfully"
+}
+```
+
+##### DELETE `/api/vendors/[id]`
+Delete vendor.
+
+**Request:**
+```bash
+curl -X DELETE http://localhost:3000/api/vendors/1
+```
+
+**Response (204):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Vendor deleted successfully"
+}
+```
+
+##### POST `/api/vendor/apply`
+Create a new vendor application.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/vendor/apply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 1,
+    "businessName": "Snack Corner",
+    "stallType": "SNACK_SHOP",
+    "stationName": "Delhi Junction",
+    "platformNumber": "3",
+    "address": "Platform 3, Delhi Junction",
+    "city": "Delhi",
+    "state": "Delhi",
+    "pincode": "110001"
+  }'
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "businessName": "Snack Corner",
+    "stallType": "SNACK_SHOP",
+    "stationName": "Delhi Junction"
+  },
+  "message": "Vendor application submitted successfully"
+}
+```
+
+##### POST `/api/vendor/upload`
+Upload vendor documents.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/vendor/upload \
+  -F "file=@aadhaar.pdf" \
+  -F "vendorId=1" \
+  -F "documentType=AADHAAR"
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "fileUrl": "https://s3.amazonaws.com/...",
+    "fileName": "aadhaar.pdf",
+    "fileSize": 245678,
+    "documentType": "AADHAAR"
+  },
+  "message": "File uploaded successfully"
+}
+```
+
+---
+
+#### 3. Licenses
+
+##### GET `/api/licenses`
+Get all licenses with pagination and filtering.
+
+**Query Parameters:**
+- `page` (number) - Page number
+- `limit` (number) - Items per page
+- `status` (string) - Filter by status (PENDING, APPROVED, REJECTED, EXPIRED)
+- `vendorId` (number) - Filter by vendor
+- `licenseNumber` (string) - Search by license number
+
+**Request:**
+```bash
+curl -X GET "http://localhost:3000/api/licenses?page=1&limit=10&status=APPROVED"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "licenseNumber": "LIC-2025-001",
+      "status": "APPROVED",
+      "vendorId": 1,
+      "approvedAt": "2025-12-15T10:30:00Z",
+      "expiresAt": "2026-12-15T10:30:00Z",
+      "vendor": {
+        "businessName": "Tea Shop",
+        "stallType": "TEA_STALL"
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 23,
+    "totalPages": 3
+  }
+}
+```
+
+##### POST `/api/licenses`
+Create a new license application.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/licenses \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vendorId": 1,
+    "licenseNumber": "LIC-2025-002"
+  }'
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "licenseNumber": "LIC-2025-002",
+    "vendorId": 1,
+    "status": "PENDING"
+  },
+  "message": "License created successfully"
+}
+```
+
+##### GET `/api/licenses/[id]`
+Get license details by ID.
+
+**Request:**
+```bash
+curl -X GET http://localhost:3000/api/licenses/1
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "licenseNumber": "LIC-2025-001",
+    "status": "APPROVED",
+    "vendor": {
+      "businessName": "Tea Shop",
+      "stationName": "Mumbai Central"
+    },
+    "approvedBy": {
+      "name": "Admin User",
+      "email": "admin@example.com"
+    }
+  }
+}
+```
+
+##### PUT `/api/licenses/[id]`
+Update license details.
+
+**Request:**
+```bash
+curl -X PUT http://localhost:3000/api/licenses/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "remarks": "Renewed for 2026"
+  }'
+```
+
+##### DELETE `/api/licenses/[id]`
+Delete license.
+
+**Request:**
+```bash
+curl -X DELETE http://localhost:3000/api/licenses/1
+```
+
+##### POST `/api/license/approve`
+Approve a license application.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/license/approve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "licenseId": 1,
+    "approvedById": 5,
+    "expiresAt": "2026-12-31T23:59:59Z"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "licenseNumber": "LIC-2025-001",
+    "status": "APPROVED",
+    "approvedAt": "2025-12-16T10:30:00Z",
+    "expiresAt": "2026-12-31T23:59:59Z"
+  },
+  "message": "License approved successfully"
+}
+```
+
+##### POST `/api/licenses/[id]/reject`
+Reject a license application.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/licenses/1/reject \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rejectionReason": "Incomplete documentation"
+  }'
+```
+
+##### POST `/api/license/generate-qr`
+Generate QR code for a license.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/license/generate-qr \
+  -H "Content-Type: application/json" \
+  -d '{
+    "licenseNumber": "LIC-2025-001"
+  }'
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "qrCodeUrl": "https://s3.amazonaws.com/qr-codes/...",
+    "licenseNumber": "LIC-2025-001"
+  },
+  "message": "QR code generated successfully"
+}
+```
+
+---
+
+#### 4. Verification
+
+##### GET `/api/verify`
+Verify a license by license number or QR code.
+
+**Query Parameters:**
+- `licenseNumber` (string) - License number to verify
+- `qrCode` (string) - QR code data to verify
+
+**Request:**
+```bash
+curl -X GET "http://localhost:3000/api/verify?licenseNumber=LIC-2025-001"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "license": {
+      "licenseNumber": "LIC-2025-001",
+      "status": "APPROVED",
+      "expiresAt": "2026-12-31T23:59:59Z",
+      "vendor": {
+        "businessName": "Tea Shop",
+        "stallType": "TEA_STALL",
+        "stationName": "Mumbai Central"
+      }
+    },
+    "isValid": true,
+    "isExpired": false,
+    "message": "License is valid"
+  },
+  "message": "License verification completed"
+}
+```
+
+---
+
+### Route Hierarchy Summary
+
+```
+/api
+├── /auth (POST)                      # Authentication
+├── /vendors                          # Vendor management
+│   ├── GET                           # List all vendors (paginated)
+│   └── /[id]
+│       ├── GET                       # Get vendor by ID
+│       ├── PUT                       # Update vendor
+│       └── DELETE                    # Delete vendor
+├── /vendor
+│   ├── /apply (POST)                 # Create vendor application
+│   └── /upload (POST)                # Upload documents
+├── /licenses                         # License management
+│   ├── GET                           # List all licenses (paginated)
+│   ├── POST                          # Create license
+│   └── /[id]
+│       ├── GET                       # Get license by ID
+│       ├── PUT                       # Update license
+│       ├── DELETE                    # Delete license
+│       └── /reject (POST)            # Reject license
+├── /license
+│   ├── /approve (POST)               # Approve license
+│   └── /generate-qr (POST)           # Generate QR code
+└── /verify (GET)                     # Verify license
+```
+
+---
+
+### Naming Conventions & Best Practices
+
+#### ✅ Do's
+- Use **plural nouns** for collections: `/api/vendors`, `/api/licenses`
+- Use **lowercase** for route names
+- Use **nouns, not verbs**: `/api/vendors` not `/api/getVendors`
+- Use **nested routes** for relationships: `/api/licenses/[id]/reject`
+- Return **201** for resource creation
+- Return **204** for successful deletion
+- Use **pagination** for list endpoints
+- Include **proper error messages** with codes
+
+#### ❌ Don'ts
+- Don't use verbs in URLs: `/api/createVendor` ❌
+- Don't use special characters or spaces
+- Don't return 200 for creation (use 201)
+- Don't fetch all records without pagination
+- Don't expose internal error details to clients
+
+---
+
+### Testing with curl
+
+**Start the development server:**
+```bash
+cd vendorvault
+npm run dev
+```
+
+**Test basic endpoints:**
+```bash
+# Get all vendors
+curl -X GET "http://localhost:3000/api/vendors?page=1&limit=5"
+
+# Get specific vendor
+curl -X GET http://localhost:3000/api/vendors/1
+
+# Create vendor application
+curl -X POST http://localhost:3000/api/vendor/apply \
+  -H "Content-Type: application/json" \
+  -d '{"userId":1,"businessName":"Test Shop","stallType":"TEA_STALL","stationName":"Test Station"}'
+
+# Get all licenses
+curl -X GET "http://localhost:3000/api/licenses?status=APPROVED"
+
+# Verify license
+curl -X GET "http://localhost:3000/api/verify?licenseNumber=LIC-2025-001"
+```
+
+---
+
+### Reflection on API Design
+
+#### Consistency Benefits
+1. **Predictability** - Developers can guess endpoint patterns
+2. **Maintainability** - Clear structure makes updates easier
+3. **Scalability** - Easy to add new resources following same pattern
+4. **Documentation** - Self-documenting through consistent naming
+5. **Integration** - External services can integrate easily
+
+#### Error Handling Benefits
+1. **Client-Friendly** - Clear error messages with codes
+2. **Debugging** - Detailed error information in logs
+3. **Security** - No internal error details exposed
+4. **User Experience** - Meaningful messages for end users
+5. **Monitoring** - Consistent format for error tracking
+
+---
+
+## �📖 Documentation Files
 
 | File | Purpose | Location |
 |------|---------|----------|

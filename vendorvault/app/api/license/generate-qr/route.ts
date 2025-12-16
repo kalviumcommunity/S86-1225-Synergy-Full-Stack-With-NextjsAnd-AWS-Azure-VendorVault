@@ -1,29 +1,38 @@
-// Minimal API route handlers for QR generation (placeholders)
-export async function POST(request: Request) {
-  try {
-    const body = await request.json().catch(() => ({}));
-    // Placeholder: normally you'd generate QR code here
-    return new Response(
-      JSON.stringify({ ok: true, qr: "placeholder", received: body }),
-      {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }
-    );
-  } catch (err) {
-    return new Response(JSON.stringify({ ok: false, error: String(err) }), {
-      status: 500,
-      headers: { "content-type": "application/json" },
-    });
-  }
-}
+import { NextRequest } from "next/server";
+import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
+import { generateQRCode } from "@/lib/qr";
 
-export async function GET() {
-  return new Response(
-    JSON.stringify({ ok: true, message: "Generate QR endpoint" }),
-    {
-      status: 200,
-      headers: { "content-type": "application/json" },
+/**
+ * POST /api/license/generate-qr
+ * Generate QR code for a license
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    if (!body.licenseNumber) {
+      return ApiErrors.VALIDATION_ERROR({
+        missingFields: ["licenseNumber"],
+        message: "License number is required",
+      });
     }
-  );
+
+    // Generate QR code
+    const qrCodeUrl = await generateQRCode(body.licenseNumber);
+
+    return successResponse(
+      { qrCodeUrl, licenseNumber: body.licenseNumber },
+      "QR code generated successfully",
+      undefined,
+      201
+    );
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+
+    if (error instanceof Error) {
+      return errorResponse("QR_GENERATION_ERROR", error.message, 500);
+    }
+
+    return ApiErrors.INTERNAL_ERROR("Failed to generate QR code");
+  }
 }
