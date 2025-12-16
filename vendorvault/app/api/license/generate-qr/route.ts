@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     console.error("Error generating QR code:", error);
 
     if (error instanceof Error) {
-      return errorResponse("QR_GENERATION_ERROR", error.message, 500);
+      return errorResponse(error.message, "QR_GENERATION_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to generate QR code");

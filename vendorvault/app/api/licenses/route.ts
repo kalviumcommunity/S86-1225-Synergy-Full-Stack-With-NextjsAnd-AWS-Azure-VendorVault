@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching licenses:", error);
 
     if (error instanceof Error) {
-      return errorResponse("FETCH_ERROR", error.message, 500);
+      return errorResponse(error.message, "FETCH_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to fetch licenses");
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       if (error.message.includes("not found")) {
         return ApiErrors.NOT_FOUND("Vendor");
       }
-      return errorResponse("CREATION_ERROR", error.message, 400);
+      return errorResponse(error.message, "CREATION_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to create license");

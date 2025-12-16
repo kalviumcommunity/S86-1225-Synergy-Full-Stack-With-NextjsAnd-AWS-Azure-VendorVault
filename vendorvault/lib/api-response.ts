@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 
 /**
- * API Response Handler
+ * Global API Response Handler
  *
  * Provides consistent response structure across all API endpoints
- * following RESTful best practices
+ * following RESTful best practices with unified envelope format
  */
 
 export interface ApiSuccessResponse<T = unknown> {
   success: true;
+  message: string;
   data: T;
-  message?: string;
+  timestamp: string;
   pagination?: {
     page: number;
     limit: number;
@@ -21,26 +22,29 @@ export interface ApiSuccessResponse<T = unknown> {
 
 export interface ApiErrorResponse {
   success: false;
+  message: string;
   error: {
     code: string;
-    message: string;
     details?: unknown;
   };
+  timestamp: string;
 }
 
 /**
  * Success response helper
+ * Returns a standardized success response with timestamp
  */
 export function successResponse<T>(
   data: T,
-  message?: string,
-  pagination?: ApiSuccessResponse["pagination"],
+  message: string = "Success",
+  pagination?: ApiSuccessResponse<T>["pagination"],
   status: number = 200
 ): NextResponse<ApiSuccessResponse<T>> {
   const response: ApiSuccessResponse<T> = {
     success: true,
+    message,
     data,
-    ...(message && { message }),
+    timestamp: new Date().toISOString(),
     ...(pagination && { pagination }),
   };
 
@@ -49,47 +53,85 @@ export function successResponse<T>(
 
 /**
  * Error response helper
+ * Returns a standardized error response with timestamp
  */
 export function errorResponse(
-  code: string,
   message: string,
+  code: string,
   status: number = 400,
   details?: unknown
 ): NextResponse<ApiErrorResponse> {
   const response: ApiErrorResponse = {
     success: false,
+    message,
     error: {
       code,
-      message,
       ...(details !== undefined && { details }),
     },
+    timestamp: new Date().toISOString(),
   };
 
   return NextResponse.json(response, { status });
 }
 
 /**
+ * Standard Error Codes Dictionary
+ * Maintains consistency across all API endpoints
+ */
+export const ERROR_CODES = {
+  // Client Errors (4xx)
+  VALIDATION_ERROR: "E001",
+  NOT_FOUND: "E002",
+  UNAUTHORIZED: "E003",
+  FORBIDDEN: "E004",
+  BAD_REQUEST: "E005",
+  CONFLICT: "E006",
+
+  // Server Errors (5xx)
+  INTERNAL_ERROR: "E500",
+  DATABASE_ERROR: "E501",
+  EXTERNAL_SERVICE_ERROR: "E502",
+
+  // Business Logic Errors
+  USER_FETCH_ERROR: "E100",
+  USER_CREATE_ERROR: "E101",
+  VENDOR_FETCH_ERROR: "E102",
+  LICENSE_FETCH_ERROR: "E103",
+  AUTH_ERROR: "E104",
+  UPLOAD_ERROR: "E105",
+  QR_GENERATION_ERROR: "E106",
+} as const;
+
+/**
  * Common error responses
+ * Pre-configured error handlers for common scenarios
  */
 export const ApiErrors = {
   NOT_FOUND: (resource: string) =>
-    errorResponse("NOT_FOUND", `${resource} not found`, 404),
+    errorResponse(`${resource} not found`, ERROR_CODES.NOT_FOUND, 404),
 
-  BAD_REQUEST: (message: string) => errorResponse("BAD_REQUEST", message, 400),
+  BAD_REQUEST: (message: string) =>
+    errorResponse(message, ERROR_CODES.BAD_REQUEST, 400),
 
   UNAUTHORIZED: (message: string = "Unauthorized access") =>
-    errorResponse("UNAUTHORIZED", message, 401),
+    errorResponse(message, ERROR_CODES.UNAUTHORIZED, 401),
 
   FORBIDDEN: (message: string = "Access forbidden") =>
-    errorResponse("FORBIDDEN", message, 403),
+    errorResponse(message, ERROR_CODES.FORBIDDEN, 403),
 
-  CONFLICT: (message: string) => errorResponse("CONFLICT", message, 409),
+  CONFLICT: (message: string) =>
+    errorResponse(message, ERROR_CODES.CONFLICT, 409),
 
   INTERNAL_ERROR: (message: string = "Internal server error") =>
-    errorResponse("INTERNAL_SERVER_ERROR", message, 500),
+    errorResponse(message, ERROR_CODES.INTERNAL_ERROR, 500),
 
   VALIDATION_ERROR: (details: unknown) =>
-    errorResponse("VALIDATION_ERROR", "Validation failed", 400, details),
+    errorResponse(
+      "Validation failed",
+      ERROR_CODES.VALIDATION_ERROR,
+      400,
+      details
+    ),
 };
 
 /**

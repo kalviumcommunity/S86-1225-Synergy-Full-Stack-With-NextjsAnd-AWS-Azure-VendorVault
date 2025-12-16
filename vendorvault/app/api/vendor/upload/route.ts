@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     console.error("Error uploading file:", error);
 
     if (error instanceof Error) {
-      return errorResponse("UPLOAD_ERROR", error.message, 500);
+      return errorResponse(error.message, "UPLOAD_ERROR", 500);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to upload file");

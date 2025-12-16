@@ -45,7 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (error.message.includes("not found")) {
         return ApiErrors.NOT_FOUND("License");
       }
-      return errorResponse("REJECTION_ERROR", error.message, 400);
+      return errorResponse(error.message, "REJECTION_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to reject license");

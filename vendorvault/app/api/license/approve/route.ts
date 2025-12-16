@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       if (error.message.includes("already approved")) {
         return ApiErrors.CONFLICT(error.message);
       }
-      return errorResponse("APPROVAL_ERROR", error.message, 400);
+      return errorResponse(error.message, "APPROVAL_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to approve license");

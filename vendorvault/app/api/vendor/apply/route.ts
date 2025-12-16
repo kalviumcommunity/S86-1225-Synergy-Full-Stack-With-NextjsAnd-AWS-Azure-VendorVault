@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       if (error.message.includes("role")) {
         return ApiErrors.FORBIDDEN(error.message);
       }
-      return errorResponse("APPLICATION_ERROR", error.message, 400);
+      return errorResponse(error.message, "APPLICATION_ERROR", 400);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to process vendor application");
