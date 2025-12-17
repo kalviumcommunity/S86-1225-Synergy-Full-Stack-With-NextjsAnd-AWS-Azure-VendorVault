@@ -1,422 +1,501 @@
-# VendorVault - Input Validation Implementation Complete ✅
+# VendorVault - Authentication APIs Implementation ✅
 
-## Project Summary
+## 🎯 Project Overview
 
-Comprehensive **Zod-based input validation** has been successfully implemented across all POST and PUT API endpoints in VendorVault. This completes the security and data integrity features of the project.
+**Secure user authentication system** with bcrypt password hashing and JWT token-based authentication for VendorVault - Railway Vendor License Management System.
 
-**Date Completed:** December 16, 2025  
-**Status:** Production Ready ✅
-
----
-
-## What Was Delivered
-
-### 1. ✅ 11 Comprehensive Validation Schemas
-
-**Authentication (2 schemas)**
-- `loginSchema` - Email + password validation for login
-- `registerSchema` - Strong password requirements (8+ chars, uppercase, lowercase, number, special char)
-
-**Vendors (4 schemas)**
-- `vendorApplySchema` - Vendor registration with all required fields
-- `vendorUpdateSchema` - Partial updates (all optional)
-- `vendorKYCSchema` - KYC document submission
-- `documentUploadSchema` - Document upload metadata
-
-**Licenses (5 schemas)**
-- `licenseCreateSchema` - New license creation with format validation
-- `licenseUpdateSchema` - Update with future date validation
-- `licenseApproveSchema` - Approval workflow
-- `licenseRejectSchema` - Rejection with reason validation
-- `qrGenerateSchema` - QR code generation parameters
-
-### 2. ✅ 7 Validated API Endpoints
-
-| Endpoint | Schema | Status |
-|----------|--------|--------|
-| POST /api/auth | loginSchema | ✅ Updated |
-| POST /api/vendor/apply | vendorApplySchema | ✅ Updated |
-| PUT /api/vendors/[id] | vendorUpdateSchema | ✅ Updated |
-| POST /api/licenses | licenseCreateSchema | ✅ Updated |
-| PUT /api/licenses/[id] | licenseUpdateSchema | ✅ Updated |
-| POST /api/license/approve | licenseApproveSchema | ✅ Updated |
-| POST /api/licenses/[id]/reject | licenseRejectSchema | ✅ Ready |
-
-### 3. ✅ Reusable Validation Utility
-
-**File:** `lib/validation.ts`
-
-Helper functions for:
-- `validateRequestData<T>()` - Type-safe validation wrapper
-- `formatZodErrors()` - Convert ZodError to readable format
-- `validationErrorResponse()` - Structured 400 response
-- Type definitions for developers
-
-### 4. ✅ Comprehensive Documentation
-
-**New Documentation Files:**
-- `INPUT_VALIDATION_GUIDE.md` (1000+ lines) - Complete validation guide with examples
-- `ZOD_VALIDATION_QUICK_REFERENCE.md` (320 lines) - Quick schema reference
-- `VALIDATION_IMPLEMENTATION_SUMMARY.md` (400+ lines) - Implementation details
-- `DOCUMENTATION_INDEX.md` (300+ lines) - Navigation guide for all docs
-
-**Updated Documentation:**
-- `README.md` - Added validation section with overview and examples
-- Schema files documented with JSDoc comments
-
-### 5. ✅ Type Safety Features
-
-- **Automatic Type Inference** - `export type SchemaInput = z.infer<typeof schema>`
-- **Client-Server Reuse** - Same schemas on both ends
-- **IDE Autocomplete** - Full TypeScript support
-- **Compile-Time Checking** - Catch errors before runtime
+**Date Completed:** December 17, 2025  
+**Status:** Production Ready ✅  
+**Assignment:** Authentication APIs (Signup/Login)
 
 ---
 
-## Key Features
+## ✨ What Was Implemented
 
-### Validation Patterns Implemented
+### 1. ✅ Signup API with Password Hashing
 
-✅ **Email Validation**
-```typescript
-z.string().email("Invalid email address format")
+**Endpoint:** `POST /api/auth/signup`  
+**File:** [app/api/auth/signup/route.ts](vendorvault/app/api/auth/signup/route.ts)
+
+**Features:**
+- ✅ Secure password hashing with bcrypt (10 salt rounds)
+- ✅ Input validation using Zod schemas
+- ✅ Duplicate user detection
+- ✅ Strong password requirements enforcement
+- ✅ Returns user data (password excluded)
+
+**Password Requirements:**
+- Minimum 8 characters
+- At least 1 uppercase letter (A-Z)
+- At least 1 lowercase letter (a-z)
+- At least 1 number (0-9)
+- At least 1 special character (!@#$%^&*, etc.)
+
+**Request Example:**
+```json
+POST /api/auth/signup
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "SecurePass123!",
+  "role": "VENDOR"
+}
 ```
 
-✅ **Strong Passwords**
-- 8+ characters
-- 1 uppercase letter
-- 1 lowercase letter
-- 1 number
-- 1 special character
+---
 
-✅ **Enum Validation**
-- stall types (TEA_STALL, SNACKS, etc.)
-- document types, license statuses
+### 2. ✅ Login API with JWT Token Generation
 
-✅ **Number Transformation**
-- String to number conversion
-- Positive value validation
-- Type coercion handling
+**Endpoint:** `POST /api/auth/login`  
+**File:** [app/api/auth/login/route.ts](vendorvault/app/api/auth/login/route.ts)
 
-✅ **Date Validation**
-- ISO 8601 format
-- Future date enforcement
-- Timezone aware
+**Features:**
+- ✅ Password verification with bcrypt
+- ✅ JWT token generation (1-hour expiration)
+- ✅ Account status validation (active/inactive)
+- ✅ Returns token and user information
+- ✅ Generic error messages for security
 
-✅ **String Constraints**
-- Min/max length
-- Regex patterns (pincode, license numbers)
-- Specific format requirements
+**Request Example:**
+```json
+POST /api/auth/login
+{
+  "email": "john@example.com",
+  "password": "SecurePass123!"
+}
+```
 
-✅ **Optional Fields**
-- Nullable support
-- Conditional requirements
-- Type-safe optionals
-
-### Error Handling
-
-All validation errors return **structured 400 responses**:
-
+**Response:**
 ```json
 {
-  "success": false,
-  "message": "Validation Error",
-  "errors": [
-    {
-      "field": "fieldName",
-      "message": "Clear error message",
-      "code": "zod_error_code"
-    }
-  ]
+  "success": true,
+  "data": {
+    "user": {
+      "id": 1,
+      "email": "john@example.com",
+      "name": "John Doe",
+      "role": "VENDOR"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresIn": "1h",
+    "tokenType": "Bearer"
+  }
 }
 ```
 
-**Benefits:**
-- Field-specific errors (not generic)
-- Actionable messages for users
-- Zod error codes for debugging
-- Programmatically parseable
+---
+
+### 3. ✅ Protected Route Example
+
+**Endpoint:** `GET /api/users`  
+**File:** [app/api/users/route.ts](vendorvault/app/api/users/route.ts)
+
+**Features:**
+- ✅ JWT token validation from Authorization header
+- ✅ Token expiration handling
+- ✅ Token signature verification
+- ✅ User information extraction from token
+
+**Request Example:**
+```bash
+GET /api/users
+Authorization: Bearer <your_jwt_token>
+```
 
 ---
 
-## Implementation Details
+### 4. ✅ Authentication Middleware Library
 
-### Schema Files Created
+**File:** [lib/auth.ts](vendorvault/lib/auth.ts)
 
+**Reusable Utilities:**
+- `verifyToken()` - Verify JWT token from request
+- `requireAuth()` - Middleware for route protection
+- `hasRole()` - Check user role permissions
+- `generateToken()` - Create JWT tokens
+
+**Usage Example:**
 ```typescript
-// lib/schemas/authSchema.ts (46 lines)
-- loginSchema
-- registerSchema + types
+import { requireAuth } from "@/lib/auth";
 
-// lib/schemas/vendorSchema.ts (117 lines)
-- vendorApplySchema
-- vendorUpdateSchema
-- vendorKYCSchema
-- documentUploadSchema + types
-
-// lib/schemas/licenseSchema.ts (133 lines)
-- licenseCreateSchema
-- licenseUpdateSchema
-- licenseApproveSchema
-- licenseRejectSchema
-- qrGenerateSchema + types
+export async function GET(request: NextRequest) {
+  const { error, user } = await requireAuth(request);
+  if (error) return error;
+  
+  // User is authenticated, proceed with logic
+  return successResponse({ user });
+}
 ```
 
-### Validation Utility
+---
 
-```typescript
-// lib/validation.ts (69 lines)
-- validateRequestData<T>() wrapper
-- formatZodErrors() formatter
-- validationErrorResponse() builder
-- Type definitions
+## 📚 Documentation
+
+### Complete Guides
+
+1. **[AUTHENTICATION.md](vendorvault/AUTHENTICATION.md)** (2000+ lines)
+   - Complete authentication guide
+   - API endpoint documentation
+   - Request/response examples
+   - Security best practices
+   - Token management strategies
+   - Testing guide (Postman, PowerShell, cURL)
+   - Architecture diagrams
+   - Troubleshooting guide
+
+2. **[AUTHENTICATION_QUICK_REF.md](vendorvault/AUTHENTICATION_QUICK_REF.md)** (400+ lines)
+   - Quick reference cheat sheet
+   - Code usage examples
+   - Common issues and solutions
+   - Testing commands
+
+3. **[ASSIGNMENT_COMPLETE.md](vendorvault/ASSIGNMENT_COMPLETE.md)** (600+ lines)
+   - Deliverables checklist
+   - Implementation details
+   - Learning outcomes
+   - Design decisions
+
+---
+
+## 🔐 Security Features
+
+### Password Security
+- **bcrypt Hashing:** 10 salt rounds (industry standard)
+- **Salting:** Automatic unique salt per password
+- **Adaptive:** Can increase cost factor as hardware improves
+- **No Plain Text:** Passwords never stored in readable form
+
+### JWT Token Security
+- **Signed Tokens:** Prevents tampering
+- **Automatic Expiration:** 1-hour default (configurable)
+- **Stateless:** No server-side session storage
+- **Payload:** Contains user ID, email, and role
+- **Issuer/Audience:** Validates token origin
+
+### Input Validation
+- **Zod Schemas:** Type-safe validation
+- **Strong Password Policy:** Multi-character type requirements
+- **Email Format:** RFC-compliant validation
+- **Role Validation:** Enum-based role checking
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- PostgreSQL 12+ database
+- Git
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd vendorvault
+
+# 2. Install dependencies
+npm install
+
+# 3. Set up environment variables
+# Copy .env.example to .env and configure:
+cp .env.example .env
+
+# Required environment variables:
+# - DATABASE_URL: PostgreSQL connection string
+# - JWT_SECRET: Secret key for JWT signing (32+ characters)
+# - JWT_EXPIRY: Token expiration time (default: 1h)
 ```
 
-### API Routes Updated
+### Database Setup
 
-Each route now follows this pattern:
+```bash
+# Generate Prisma Client
+npx prisma generate
 
-```typescript
-// 1. Import validation
-import { validateRequestData } from "@/lib/validation";
-import { schemaName } from "@/lib/schemas/file";
+# Push schema to database
+npx prisma db push
 
-// 2. Validate at entry
-const validation = await validateRequestData(request, schemaName);
-if (!validation.success) {
-  return validation.response; // 400 with errors
+# Seed database with initial data (optional)
+npm run db:seed
+```
+
+### Running the Application
+
+```bash
+# Development mode
+npm run dev
+
+# Production build
+npm run build
+npm start
+```
+
+Application will be available at: `http://localhost:3000`
+
+---
+
+## 🧪 Testing the Authentication APIs
+
+### Automated Testing
+
+```powershell
+# Start the development server
+npm run dev
+
+# In a new terminal, run the test script
+.\test-auth.ps1
+```
+
+The test script will:
+- ✅ Test user signup
+- ✅ Test user login and token generation
+- ✅ Test protected route access with token
+- ✅ Test unauthorized access rejection
+- ✅ Test invalid credentials rejection
+
+### Manual Testing with PowerShell
+
+**1. Signup:**
+```powershell
+$signupBody = @{
+    name = "John Doe"
+    email = "john@example.com"
+    password = "SecurePass123!"
+    role = "VENDOR"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/auth/signup" `
+  -ContentType "application/json" -Body $signupBody
+```
+
+**2. Login:**
+```powershell
+$loginBody = @{
+    email = "john@example.com"
+    password = "SecurePass123!"
+} | ConvertTo-Json
+
+$response = Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/auth/login" `
+  -ContentType "application/json" -Body $loginBody
+
+# Save token for next request
+$token = $response.data.token
+```
+
+**3. Access Protected Route:**
+```powershell
+$headers = @{
+    Authorization = "Bearer $token"
 }
 
-// 3. Use validated data (fully typed)
-const body = validation.data;
-
-// 4. Process business logic
-const result = await businessLogic(body);
-
-// 5. Return success response
-return successResponse(result, "Success message", undefined, 201);
+Invoke-RestMethod -Method Get -Uri "http://localhost:3000/api/users" `
+  -Headers $headers
 ```
 
----
+### Manual Testing with cURL
 
-## Testing & Validation
-
-### Test Coverage
-
-**Valid Requests:**
-- All required fields present
-- Correct data types
-- Valid enum values
-- Proper date formats
-- Correct string lengths
-
-**Invalid Requests:**
-- Missing required fields
-- Wrong data types
-- Invalid enum values
-- Email format errors
-- String length violations
-- Future date requirements
-
-### Example Test Cases
-
-**✅ Valid Vendor Application:**
+**1. Signup:**
 ```bash
-curl -X POST http://localhost:3000/api/vendor/apply \
+curl -X POST http://localhost:3000/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
-    "userId": 123,
-    "businessName": "Quality Tea Shop",
-    "stallType": "TEA_STALL",
-    "stationName": "Mumbai Central",
-    "pincode": "400001"
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "SecurePass123!",
+    "role": "VENDOR"
   }'
 ```
 
-Response: **201 Created** with vendor data
-
-**❌ Invalid Request (Wrong Pincode):**
+**2. Login:**
 ```bash
-curl -X POST http://localhost:3000/api/vendor/apply \
+curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "userId": 123,
-    "businessName": "Tea Shop",
-    "stallType": "TEA_STALL",
-    "stationName": "Mumbai",
-    "pincode": "12345"  # Only 5 digits!
+    "email": "john@example.com",
+    "password": "SecurePass123!"
   }'
 ```
 
-Response: **400 Bad Request** with validation error
-
----
-
-## Integration Points
-
-### With Existing Features
-
-**Database Transactions:**
-- Validated data enters transactions safely
-- Prevents rollbacks due to bad input
-- Reduces error handling complexity
-
-**Query Optimization:**
-- Validated IDs prevent invalid queries
-- Type safety prevents coercion bugs
-- Validation errors caught before DB hit
-
-**Database Indexing:**
-- Validated filter/sort fields
-- Prevents expensive index misses
-- Ensures proper index usage
-
-**Response Handler:**
-- Validation errors use same response format
-- Consistent error structure across APIs
-- Seamless integration
-
----
-
-## Documentation Structure
-
-### Quick References
-- **ZOD_VALIDATION_QUICK_REFERENCE.md** - Schema lookup table
-- **QUICK_REFERENCE.md** - Transaction and optimization lookup
-
-### Comprehensive Guides
-- **INPUT_VALIDATION_GUIDE.md** - Complete validation system guide
-- **TRANSACTION_OPTIMIZATION_GUIDE.md** - Transaction and optimization deep dive
-
-### Implementation Summaries
-- **VALIDATION_IMPLEMENTATION_SUMMARY.md** - What was built
-- **IMPLEMENTATION_SUMMARY.md** - Transaction/optimization implementations
-
-### Navigation
-- **DOCUMENTATION_INDEX.md** - How to find what you need
-- **README.md** - Project overview with validation section
-
----
-
-## Best Practices Demonstrated
-
-✅ **Schema-First Design** - Validation schema before implementation  
-✅ **Single Source of Truth** - One schema for client and server  
-✅ **Clear Error Messages** - Help users fix problems  
-✅ **Type Safety** - Leverage TypeScript fully  
-✅ **Comprehensive Coverage** - Validate all inputs  
-✅ **Graceful Failure** - Never crash on bad input  
-✅ **Reusable Utilities** - DRY principle applied  
-✅ **Excellent Documentation** - Every feature documented with examples  
-
----
-
-## Files Created/Modified
-
-### New Files (5)
-```
-vendorvault/lib/schemas/authSchema.ts (46 lines)
-vendorvault/lib/schemas/vendorSchema.ts (117 lines)
-vendorvault/lib/schemas/licenseSchema.ts (133 lines)
-vendorvault/lib/validation.ts (69 lines)
-vendorvault/INPUT_VALIDATION_GUIDE.md (1000+ lines)
-```
-
-### Documentation Files (4)
-```
-vendorvault/ZOD_VALIDATION_QUICK_REFERENCE.md (320 lines)
-vendorvault/VALIDATION_IMPLEMENTATION_SUMMARY.md (400+ lines)
-vendorvault/DOCUMENTATION_INDEX.md (300+ lines)
-```
-
-### API Routes Updated (7)
-```
-vendorvault/app/api/auth/route.ts - Added loginSchema validation
-vendorvault/app/api/vendor/apply/route.ts - Added vendorApplySchema
-vendorvault/app/api/vendors/[id]/route.ts - Added vendorUpdateSchema
-vendorvault/app/api/licenses/route.ts - Added licenseCreateSchema
-vendorvault/app/api/licenses/[id]/route.ts - Added licenseUpdateSchema
-vendorvault/app/api/license/approve/route.ts - Added licenseApproveSchema
-app/api/licenses/[id]/reject/route.ts - Ready for licenseRejectSchema
-```
-
-### Project Documentation Updated (2)
-```
-README.md - Added validation section and documentation references
-package.json - Zod already installed
+**3. Access Protected Route:**
+```bash
+curl -X GET http://localhost:3000/api/users \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ---
 
-## Quick Start Guide
+## 📁 Project Structure
 
-### For New Developers
-
-1. **Understand the System:**
-   - Read: [ZOD_VALIDATION_QUICK_REFERENCE.md](vendorvault/ZOD_VALIDATION_QUICK_REFERENCE.md)
-   - Takes: 10 minutes
-
-2. **Learn Validation Patterns:**
-   - Read: [INPUT_VALIDATION_GUIDE.md](vendorvault/INPUT_VALIDATION_GUIDE.md) sections 1-5
-   - Takes: 20 minutes
-
-3. **Test an Endpoint:**
-   - Use examples from [ZOD_VALIDATION_QUICK_REFERENCE.md](vendorvault/ZOD_VALIDATION_QUICK_REFERENCE.md)
-   - Takes: 5 minutes
-
-### For Implementation
-
-1. **Create Schema:**
-   - Copy similar schema from existing files
-   - Modify fields and validation rules
-   - Export TypeScript type
-
-2. **Update API Route:**
-   - Import validation utility and schema
-   - Call `validateRequestData(request, schema)`
-   - Check `validation.success` before proceeding
-   - Use `validation.data` for business logic
-
-3. **Test:**
-   - Use cURL examples from quick reference
-   - Test valid and invalid cases
-   - Verify error messages
+```
+vendorvault/
+├── app/
+│   ├── api/
+│   │   ├── auth/
+│   │   │   ├── signup/
+│   │   │   │   └── route.ts      # Signup API
+│   │   │   └── login/
+│   │   │       └── route.ts      # Login API
+│   │   └── users/
+│   │       └── route.ts          # Protected route example
+│   ├── admin/                    # Admin pages
+│   ├── vendor/                   # Vendor pages
+│   └── auth/                     # Auth pages (login/register UI)
+├── lib/
+│   ├── auth.ts                   # Authentication middleware
+│   ├── schemas/
+│   │   └── authSchema.ts         # Validation schemas
+│   ├── validation.ts             # Validation utilities
+│   ├── api-response.ts           # Response formatters
+│   └── prisma.ts                 # Database client
+├── prisma/
+│   └── schema.prisma             # Database schema
+├── AUTHENTICATION.md             # Complete auth documentation
+├── AUTHENTICATION_QUICK_REF.md   # Quick reference guide
+├── ASSIGNMENT_COMPLETE.md        # Assignment summary
+├── test-auth.ps1                 # Automated test script
+└── README.md                     # This file
+```
 
 ---
 
-## Performance Impact
+## 🔑 API Endpoints Reference
 
-✅ **Zero Overhead for Valid Requests**
-- Validation is immediate (milliseconds)
-- Happens before other processing
-- No additional network calls
+| Endpoint | Method | Description | Access |
+|----------|--------|-------------|--------|
+| `/api/auth/signup` | POST | Register new user | Public |
+| `/api/auth/login` | POST | Login and get JWT | Public |
+| `/api/users` | GET | Get user info | Private (requires token) |
 
-✅ **Improved Error Resolution**
-- Users get clear feedback
-- No need to debug why API failed
-- Reduces support burden
-
-✅ **Better Developer Experience**
-- Type safety everywhere
-- IDE autocomplete works
-- Fewer runtime errors
+**Authentication Header Format:**
+```
+Authorization: Bearer <jwt_token>
+```
 
 ---
 
-## Future Enhancements
+## 💡 Key Learning Concepts
 
-Possible improvements documented in:
-- VALIDATION_IMPLEMENTATION_SUMMARY.md
-- INPUT_VALIDATION_GUIDE.md
+### 1. Password Security
+- **Why bcrypt?** Specifically designed for password hashing with automatic salting
+- **Salt Rounds:** 10 rounds balances security and performance
+- **Adaptive:** Can increase cost as hardware improves
+- **One-Way:** Hashing is irreversible, making passwords unreadable even if database is compromised
 
-Examples:
-- [ ] Custom validators for business logic
-- [ ] Rate limiting on endpoints
-- [ ] Frontend form validation (react-hook-form + Zod)
-- [ ] OpenAPI/Swagger generation
-- [ ] API versioning support
-- [ ] Audit logging for failures
-- [ ] Validation metrics dashboard
+### 2. JWT Authentication
+- **Stateless:** No server-side session storage needed
+- **Self-Contained:** Token carries all necessary user information
+- **Signed:** Secret key prevents tampering
+- **Expiring:** Automatic expiration limits token theft impact
+
+### 3. Token Management
+- **Storage Options:** HTTP-only cookies (recommended) vs localStorage vs memory
+- **Expiration:** 1-hour default balances security and user experience
+- **Refresh Tokens:** For longer sessions (future enhancement)
+
+### 4. Security Best Practices
+- Never store plain-text passwords
+- Use generic error messages (don't leak user existence)
+- Validate all inputs before processing
+- Always use HTTPS in production
+- Implement rate limiting (future enhancement)
+
+---
+
+## 🛠️ Development Commands
+
+```bash
+# Development
+npm run dev              # Start development server
+npm run build            # Build for production
+npm start                # Start production server
+npm run lint             # Run ESLint
+
+# Database
+npm run db:generate      # Generate Prisma Client
+npm run db:push          # Push schema to database
+npm run db:migrate       # Run migrations
+npm run db:seed          # Seed database
+npm run db:studio        # Open Prisma Studio
+
+# Testing
+.\test-auth.ps1          # Run authentication tests
+```
+
+---
+
+## 📖 Additional Resources
+
+### Documentation
+- **[AUTHENTICATION.md](vendorvault/AUTHENTICATION.md)** - Complete authentication guide (2000+ lines)
+  - Detailed API documentation
+  - Security explanations
+  - Testing strategies
+  - Token management
+  - Troubleshooting
+
+- **[AUTHENTICATION_QUICK_REF.md](vendorvault/AUTHENTICATION_QUICK_REF.md)** - Quick reference (400+ lines)
+  - API cheat sheet
+  - Code examples
+  - Common issues
+
+- **[ASSIGNMENT_COMPLETE.md](vendorvault/ASSIGNMENT_COMPLETE.md)** - Assignment details (600+ lines)
+  - Deliverables checklist
+  - Implementation details
+  - Design decisions
+
+### External Resources
+- [bcrypt Documentation](https://www.npmjs.com/package/bcryptjs)
+- [JWT Documentation](https://www.npmjs.com/package/jsonwebtoken)
+- [JWT.io - Token Debugger](https://jwt.io/)
+- [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
+- [OWASP Authentication Guide](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+
+---
+
+## 🎯 Assignment Deliverables
+
+✅ **Working Signup API** with bcrypt password hashing  
+✅ **Working Login API** with JWT token generation  
+✅ **Protected Route** demonstrating token validation  
+✅ **Reusable Middleware** for authentication in `lib/auth.ts`  
+✅ **Comprehensive Documentation** with examples and best practices  
+✅ **Automated Test Script** for API verification  
+✅ **Environment Configuration** with JWT settings  
+
+---
+
+## 🤝 Contributing
+
+This is an educational project for the Web Systems and Internet (WSI) course. For questions or improvements:
+
+1. Review the documentation in AUTHENTICATION.md
+2. Check AUTHENTICATION_QUICK_REF.md for quick answers
+3. Run test-auth.ps1 to verify setup
+
+---
+
+## 📝 License
+
+This project is part of the Kalvium curriculum.
+
+---
+
+## 🎓 Course Information
+
+**Course:** Web Systems and Internet (WSI) Part-2  
+**Module:** Authentication APIs (Signup/Login)  
+**Institution:** Kalvium  
+**Semester:** 3rd Semester  
+**Date:** December 17, 2025
+
+---
+
+**Status:** ✅ Production Ready  
+**Documentation:** ✅ Complete  
+**Testing:** ✅ Verified  
+**Security:** ✅ Industry Standard
 
 ---
 
