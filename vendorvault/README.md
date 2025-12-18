@@ -142,19 +142,9 @@ vendorvault/
 │   └── auth/           # Authentication pages
 ├── components/         # React components
 ├── lib/                # Utility libraries
+├── middleware.ts       # Authorization middleware (RBAC)
 ├── prisma/             # Database schema and migrations
 ├── services/           # Business logic services
 ├── types/              # TypeScript type definitions
 └── utils/              # Helper functions
 ```
-
-## 🔒 Security Notes
-
-- The `.env` file contains sensitive credentials and is gitignored
-- Never commit `.env` to version control
-- Use `.env.example` as a template for other developers
-- Update default passwords in production
-
-## 📚 Additional Documentation
-
-See the main project README at the root directory for full documentation.
