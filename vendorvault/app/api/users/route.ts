@@ -1,98 +1,61 @@
 /**
- * @route GET /api/users - Protected route demonstrating JWT token validation
+ * @route GET /api/users - Protected route accessible to all authenticated users
  * @description Get current user information (requires valid JWT token)
- * @access Private (Requires authentication)
+ * @access Private (All authenticated roles: ADMIN, VENDOR, INSPECTOR)
  */
 
 import { NextRequest } from "next/server";
-import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
-import jwt from "jsonwebtoken";
-
-// JWT Secret from environment variable
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production";
-
-// Define JWT payload type
-interface JWTPayload {
-  id: number;
-  email: string;
-  role: string;
-  iat?: number;
-  exp?: number;
-  iss?: string;
-  aud?: string;
-}
+import { successResponse } from "@/lib/api-response";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/users - Get current authenticated user information
  *
  * @header {string} Authorization - Bearer token (format: "Bearer <token>")
+ * @header {string} x-user-id - User ID (set by middleware)
+ * @header {string} x-user-email - User email (set by middleware)
+ * @header {string} x-user-role - User role (set by middleware)
  *
- * @returns {object} - Success response with user data from token
+ * @returns {object} - Success response with complete user data from database
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Get Authorization header
-    const authHeader = request.headers.get("authorization");
+  // User is already authenticated by middleware
+  // We can safely access user info from headers
+  const userId = request.headers.get("x-user-id");
+  const userRole = request.headers.get("x-user-role");
 
-    // Check if Authorization header exists
-    if (!authHeader) {
-      return ApiErrors.UNAUTHORIZED("Authorization header is missing");
-    }
-
-    // Extract token from "Bearer <token>" format
-    const token = authHeader.split(" ")[1];
-
-    if (!token) {
-      return ApiErrors.UNAUTHORIZED(
-        "Token is missing from Authorization header"
-      );
-    }
-
-    // Verify and decode JWT token
-    let decoded: JWTPayload;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET, {
-        issuer: "vendorvault-api",
-        audience: "vendorvault-client",
-      }) as JWTPayload;
-    } catch (jwtError) {
-      if (jwtError instanceof jwt.TokenExpiredError) {
-        return ApiErrors.UNAUTHORIZED("Token has expired. Please login again.");
-      }
-      if (jwtError instanceof jwt.JsonWebTokenError) {
-        return ApiErrors.FORBIDDEN("Invalid or malformed token");
-      }
-      throw jwtError;
-    }
-
-    // Token is valid - return user information
-    return successResponse(
-      {
-        user: {
-          id: decoded.id,
-          email: decoded.email,
-          role: decoded.role,
+  // Fetch complete user information from database
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(userId!) },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      phone: true,
+      isActive: true,
+      emailVerified: true,
+      createdAt: true,
+      updatedAt: true,
+      vendor: {
+        select: {
+          id: true,
+          businessName: true,
+          stallType: true,
+          stationName: true,
         },
-        tokenInfo: {
-          issuedAt: decoded.iat
-            ? new Date(decoded.iat * 1000).toISOString()
-            : undefined,
-          expiresAt: decoded.exp
-            ? new Date(decoded.exp * 1000).toISOString()
-            : undefined,
-        },
-        message: "Access granted to protected resource",
       },
-      "Token validated successfully"
-    );
-  } catch (error) {
-    console.error("Error validating token:", error);
+    },
+  });
 
-    if (error instanceof Error) {
-      return errorResponse(error.message, "TOKEN_VALIDATION_ERROR", 500);
-    }
-
-    return ApiErrors.INTERNAL_ERROR("Token validation failed");
-  }
+  return successResponse(
+    {
+      message: "User route accessible to all authenticated users.",
+      role: userRole,
+      user: user,
+      accessLevel:
+        "This route is available to ADMIN, VENDOR, and INSPECTOR roles.",
+    },
+    "User information retrieved successfully"
+  );
 }
