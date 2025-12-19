@@ -9,6 +9,7 @@ import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { createVendor } from "@/services/vendor.services";
 import { vendorApplySchema } from "@/lib/schemas/vendorSchema";
 import { validateRequestData } from "@/lib/validation";
+import redis from "@/lib/redis";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +35,25 @@ export async function POST(request: NextRequest) {
       state: body.state,
       pincode: body.pincode,
     });
+
+    // Invalidate vendors cache after new application
+    try {
+      const keys = await redis.keys("vendors:*");
+      if (keys.length > 0) {
+        await redis.del(...keys);
+        console.log("🗑️ Vendors cache invalidated after new application");
+      }
+    } catch (redisError) {
+      console.warn("⚠️ Failed to invalidate vendors cache:", redisError);
+    }
+
+    // Invalidate user cache for the applicant
+    try {
+      await redis.del(`user:${body.userId}`);
+      console.log("🗑️ User cache invalidated after vendor application");
+    } catch (redisError) {
+      console.warn("⚠️ Failed to invalidate user cache:", redisError);
+    }
 
     return successResponse(
       vendor,

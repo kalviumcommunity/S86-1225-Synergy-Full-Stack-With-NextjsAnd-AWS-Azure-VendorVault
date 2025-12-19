@@ -9,6 +9,7 @@ import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { approveLicense } from "@/services/license.service";
 import { licenseApproveSchema } from "@/lib/schemas/licenseSchema";
 import { validateRequestData } from "@/lib/validation";
+import redis from "@/lib/redis";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,17 @@ export async function POST(request: NextRequest) {
       approvedById: body.approvedById,
       expiresAt: new Date(body.expiresAt),
     });
+
+    // Invalidate licenses cache after approval
+    try {
+      const keys = await redis.keys("licenses:*");
+      if (keys.length > 0) {
+        await redis.del(...keys);
+        console.log("🗑️ Licenses cache invalidated after approval");
+      }
+    } catch (redisError) {
+      console.warn("⚠️ Failed to invalidate licenses cache:", redisError);
+    }
 
     return successResponse(license, "License approved successfully");
   } catch (error) {

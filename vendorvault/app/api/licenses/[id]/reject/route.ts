@@ -7,6 +7,7 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { rejectLicense } from "@/services/license.service";
+import redis from "@/lib/redis";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -36,6 +37,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       licenseId,
       rejectionReason: body.rejectionReason,
     });
+
+    // Invalidate licenses cache after rejection
+    try {
+      const keys = await redis.keys("licenses:*");
+      if (keys.length > 0) {
+        await redis.del(...keys);
+        console.log("🗑️ Licenses cache invalidated after rejection");
+      }
+    } catch (redisError) {
+      console.warn("⚠️ Failed to invalidate licenses cache:", redisError);
+    }
 
     return successResponse(license, "License rejected successfully");
   } catch (error) {
