@@ -1,0 +1,196 @@
+{
+  "info": {
+    "name": "VendorVault - File Upload API",
+    "description": "Collection for testing file upload with AWS S3 pre-signed URLs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Generate Pre-Signed URL",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filename\": \"test-document.pdf\",\n  \"fileType\": \"application/pdf\",\n  \"fileSize\": 102400,\n  \"vendorId\": \"1\",\n  \"documentType\": \"ID_PROOF_PAN\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/vendor/upload",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "vendor", "upload"]
+        },
+        "description": "Request a pre-signed URL for uploading a file to S3.\n\nThe response will include:\n- uploadURL: Use this to upload the file\n- fileUrl: The final URL of the file\n- fileKey: Storage key in S3\n- expiresIn: Seconds until URL expires"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Upload File to S3 (Manual)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/pdf"
+          }
+        ],
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": ""
+          }
+        },
+        "url": {
+          "raw": "{{uploadURL}}",
+          "host": ["{{uploadURL}}"]
+        },
+        "description": "Upload the actual file to S3 using the pre-signed URL from step 1.\n\nIMPORTANT:\n1. Replace {{uploadURL}} with the actual uploadURL from the previous response\n2. Set the body to binary and select your file\n3. Must complete within 60 seconds"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Store File Metadata",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fileName\": \"test-document.pdf\",\n  \"fileUrl\": \"{{fileUrl}}\",\n  \"fileKey\": \"{{fileKey}}\",\n  \"fileSize\": 102400,\n  \"mimeType\": \"application/pdf\",\n  \"vendorId\": \"1\",\n  \"documentType\": \"ID_PROOF_PAN\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/files",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "files"]
+        },
+        "description": "After successfully uploading to S3, store the file metadata in the database.\n\nReplace {{fileUrl}} and {{fileKey}} with values from step 1 response."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Get All Files",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/files",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "files"]
+        },
+        "description": "Retrieve all uploaded files metadata from the database."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Get Files by Vendor",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/files?vendorId=1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "files"],
+          "query": [
+            {
+              "key": "vendorId",
+              "value": "1"
+            }
+          ]
+        },
+        "description": "Retrieve files for a specific vendor."
+      },
+      "response": []
+    },
+    {
+      "name": "Test: Invalid File Type",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filename\": \"document.docx\",\n  \"fileType\": \"application/msword\",\n  \"fileSize\": 50000,\n  \"vendorId\": \"1\",\n  \"documentType\": \"ID_PROOF_PAN\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/vendor/upload",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "vendor", "upload"]
+        },
+        "description": "Test validation: This should fail because .docx is not an allowed file type."
+      },
+      "response": []
+    },
+    {
+      "name": "Test: File Too Large",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filename\": \"large-file.pdf\",\n  \"fileType\": \"application/pdf\",\n  \"fileSize\": 10485760,\n  \"vendorId\": \"1\",\n  \"documentType\": \"ID_PROOF_PAN\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/vendor/upload",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "vendor", "upload"]
+        },
+        "description": "Test validation: This should fail because file size exceeds 5MB limit."
+      },
+      "response": []
+    },
+    {
+      "name": "Test: Missing Required Fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filename\": \"test.pdf\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/vendor/upload",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "vendor", "upload"]
+        },
+        "description": "Test validation: This should fail because fileType is missing."
+      },
+      "response": []
+    }
+  ]
+}

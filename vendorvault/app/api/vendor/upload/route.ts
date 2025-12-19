@@ -1,58 +1,65 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
-import { uploadToS3 } from "@/lib/s3";
+import { generatePresignedUploadUrl, validateFile, getFileUrl } from "@/lib/s3";
 
 /**
  * POST /api/vendor/upload
- * Upload vendor documents (Aadhaar, PAN, etc.)
+ * Generate pre-signed URL for secure file upload to S3
+ *
+ * This endpoint validates the file and returns a temporary URL
+ * that allows the client to upload directly to S3
  */
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    const body = await request.json();
 
-    const file = formData.get("file") as File | null;
-    const vendorId = formData.get("vendorId") as string | null;
-    const documentType = formData.get("documentType") as string | null;
+    const { filename, fileType, fileSize, vendorId, documentType } = body;
 
     // Validate required fields
-    if (!file || !vendorId || !documentType) {
+    if (!filename || !fileType) {
       return ApiErrors.VALIDATION_ERROR({
-        missingFields: !file
-          ? ["file"]
-          : !vendorId
-            ? ["vendorId"]
-            : ["documentType"],
-        message: "File, vendorId, and documentType are required",
+        missingFields: !filename ? ["filename"] : ["fileType"],
+        message: "Filename and fileType are required",
       });
     }
 
-    // Validate file size (e.g., max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      return ApiErrors.BAD_REQUEST("File size exceeds 5MB limit");
+    // Validate file type and size
+    const validation = validateFile(fileType, fileSize);
+    if (!validation.isValid) {
+      return ApiErrors.BAD_REQUEST(validation.error || "Invalid file");
     }
 
-    // Upload to S3 or storage
-    const fileUrl = await uploadToS3(file, vendorId, documentType);
+    // Generate pre-signed URL
+    const { uploadURL, fileKey, expiresIn } = await generatePresignedUploadUrl(
+      filename,
+      fileType,
+      vendorId,
+      documentType
+    );
+
+    // Get the public URL for the file
+    const fileUrl = getFileUrl(fileKey);
 
     return successResponse(
       {
+        uploadURL,
         fileUrl,
-        fileName: file.name,
-        fileSize: file.size,
-        documentType,
+        fileKey,
+        expiresIn,
+        message:
+          "Pre-signed URL generated. Use PUT request to upload file to uploadURL",
       },
-      "File uploaded successfully",
+      "Pre-signed URL generated successfully",
       undefined,
-      201
+      200
     );
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Error generating pre-signed URL:", error);
 
     if (error instanceof Error) {
-      return errorResponse(error.message, "UPLOAD_ERROR", 500);
+      return errorResponse(error.message, "PRESIGNED_URL_ERROR", 500);
     }
 
-    return ApiErrors.INTERNAL_ERROR("Failed to upload file");
+    return ApiErrors.INTERNAL_ERROR("Failed to generate pre-signed URL");
   }
 }

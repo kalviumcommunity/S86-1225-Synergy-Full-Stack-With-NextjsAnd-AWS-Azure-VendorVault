@@ -6,11 +6,13 @@ Railway Vendor License Management System - A comprehensive, production-ready pla
 - **Transaction Safety:** ACID-compliant transactions with automatic rollback
 - **Query Performance:** 150x faster with optimized indexes
 - **Data Integrity:** Automatic validation and constraint enforcement
+- **Secure File Upload:** AWS S3 pre-signed URLs for direct, scalable uploads
 
 ## 📋 Prerequisites
 
 - Node.js 18+ and npm
 - PostgreSQL 12+ database
+- AWS Account with S3 access (for file uploads)
 - Docker & Docker Compose (optional)
 - At least 1GB free disk space for indexes
 
@@ -28,6 +30,7 @@ npm install
 # 3. Configure environment variables
 # Copy .env.example to .env and update with your database credentials
 # Make sure DATABASE_URL, DB_PASSWORD, and DB_NAME are set
+# Also configure AWS S3: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME
 
 # 4. Generate Prisma Client
 npx prisma generate
@@ -137,14 +140,35 @@ docker exec -it postgres_db psql -U postgres -d railway_vendor_db
 vendorvault/
 ├── app/                 # Next.js app directory
 │   ├── api/            # API routes
+│   │   ├── vendor/upload/  # Pre-signed URL generation
+│   │   └── files/      # File metadata storage
 │   ├── admin/          # Admin pages
 │   ├── vendor/         # Vendor pages
 │   └── auth/           # Authentication pages
 ├── components/         # React components
 ├── lib/                # Utility libraries
+│   └── s3.ts          # AWS S3 utilities
 ├── middleware.ts       # Authorization middleware (RBAC)
 ├── prisma/             # Database schema and migrations
 ├── services/           # Business logic services
 ├── types/              # TypeScript type definitions
 └── utils/              # Helper functions
 ```
+
+## 📤 File Upload System
+
+Production-ready file upload using **AWS S3 Pre-Signed URLs**.
+
+### Features:
+- ✅ Secure direct-to-S3 uploads
+- ✅ File validation (type & size)
+- ✅ Time-limited URLs (60s expiry)
+- ✅ Metadata storage in database
+
+### Documentation:
+See [FILEUPLOAD_README.md](FILEUPLOAD_README.md) for complete implementation guide.
+
+### Supported Files:
+- Images: JPG, PNG, WEBP
+- Documents: PDF
+- Max Size: 5MB
