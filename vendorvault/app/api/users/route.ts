@@ -7,6 +7,7 @@
 import { NextRequest } from "next/server";
 import { successResponse } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
+import redis from "@/lib/redis";
 
 /**
  * GET /api/users - Get current authenticated user information
@@ -23,6 +24,27 @@ export async function GET(request: NextRequest) {
   // We can safely access user info from headers
   const userId = request.headers.get("x-user-id");
   const userRole = request.headers.get("x-user-role");
+
+  // Check Redis cache first
+  const cacheKey = `user:${userId}`;
+  try {
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+      console.log("✅ Cache Hit - User data served from Redis");
+      return successResponse(
+        JSON.parse(cachedData),
+        "User information retrieved successfully (cached)"
+      );
+    }
+  } catch (redisError) {
+    console.warn(
+      "⚠️ Redis cache read failed, falling back to database:",
+      redisError
+    );
+  }
+
+  console.log("❌ Cache Miss - Fetching user data from database");
 
   // Fetch complete user information from database
   const user = await prisma.user.findUnique({
@@ -48,14 +70,24 @@ export async function GET(request: NextRequest) {
     },
   });
 
+  const responseData = {
+    message: "User route accessible to all authenticated users.",
+    role: userRole,
+    user: user,
+    accessLevel:
+      "This route is available to ADMIN, VENDOR, and INSPECTOR roles.",
+  };
+
+  // Cache the response for 300 seconds (5 minutes)
+  try {
+    await redis.set(cacheKey, JSON.stringify(responseData), "EX", 300);
+    console.log("💾 User data cached successfully");
+  } catch (redisError) {
+    console.warn("⚠️ Failed to cache user data:", redisError);
+  }
+
   return successResponse(
-    {
-      message: "User route accessible to all authenticated users.",
-      role: userRole,
-      user: user,
-      accessLevel:
-        "This route is available to ADMIN, VENDOR, and INSPECTOR roles.",
-    },
+    responseData,
     "User information retrieved successfully"
   );
 }

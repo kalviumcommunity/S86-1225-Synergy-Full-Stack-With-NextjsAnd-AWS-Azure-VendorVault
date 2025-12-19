@@ -1,7 +1,9 @@
 /**
- * Authorization Middleware
+ * Authorization Proxy (formerly Middleware)
  * Intercepts all incoming requests and validates JWT tokens
  * Enforces Role-Based Access Control (RBAC) across API routes
+ *
+ * Note: Renamed from middleware.ts to proxy.ts following Next.js 15+ convention
  */
 
 import { NextResponse } from "next/server";
@@ -25,13 +27,13 @@ interface JWTPayload {
 }
 
 /**
- * Middleware function that runs on every request
+ * Proxy function that runs on every request
  * Validates JWT tokens and enforces role-based access control
  *
  * @param req - Next.js request object
  * @returns NextResponse - Either allows request to proceed or returns error
  */
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Define protected route patterns and their required roles
@@ -130,8 +132,8 @@ export function middleware(req: NextRequest) {
 }
 
 /**
- * Matcher configuration - defines which routes this middleware should run on
- * This optimizes performance by only running middleware on API routes
+ * Matcher configuration - defines which routes this proxy should run on
+ * This optimizes performance by only running proxy on API routes
  */
 export const config = {
   matcher: [

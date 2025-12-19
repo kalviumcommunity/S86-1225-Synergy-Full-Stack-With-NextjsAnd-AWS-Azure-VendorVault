@@ -17,6 +17,7 @@ import { licenseCreateSchema } from "@/lib/schemas/licenseSchema";
 import { validateRequestData } from "@/lib/validation";
 import { createLicense } from "@/services/license.service";
 import { prisma } from "@/lib/prisma";
+import redis from "@/lib/redis";
 
 /**
  * GET /api/licenses - Get all licenses with pagination and filtering
@@ -59,6 +60,31 @@ export async function GET(request: NextRequest) {
     if (licenseNumber)
       where.licenseNumber = { contains: licenseNumber, mode: "insensitive" };
 
+    // Generate cache key based on query parameters
+    const cacheKey = `licenses:page:${page}:limit:${limit}:status:${status || "all"}:vendor:${vendorId || "all"}:number:${licenseNumber || "all"}`;
+
+    // Check Redis cache first
+    try {
+      const cachedData = await redis.get(cacheKey);
+
+      if (cachedData) {
+        console.log("✅ Cache Hit - Licenses data served from Redis");
+        const parsedData = JSON.parse(cachedData);
+        return successResponse(
+          parsedData.licenses,
+          "Licenses retrieved successfully (cached)",
+          parsedData.pagination
+        );
+      }
+    } catch (redisError) {
+      console.warn(
+        "⚠️ Redis cache read failed, falling back to database:",
+        redisError
+      );
+    }
+
+    console.log("❌ Cache Miss - Fetching licenses data from database");
+
     // Get total count
     const total = await prisma.license.count({ where });
 
@@ -90,6 +116,19 @@ export async function GET(request: NextRequest) {
     });
 
     const pagination = calculatePagination(page, limit, total);
+
+    // Cache the response for 120 seconds (2 minutes)
+    try {
+      await redis.set(
+        cacheKey,
+        JSON.stringify({ licenses, pagination }),
+        "EX",
+        120
+      );
+      console.log("💾 Licenses data cached successfully");
+    } catch (redisError) {
+      console.warn("⚠️ Failed to cache licenses data:", redisError);
+    }
 
     return successResponse(
       licenses,
@@ -127,6 +166,17 @@ export async function POST(request: NextRequest) {
       isRenewal: body.isRenewal || false,
       previousLicenseId: body.previousLicenseId,
     });
+
+    // Invalidate licenses cache after creation
+    try {
+      const keys = await redis.keys("licenses:*");
+      if (keys.length > 0) {
+        await redis.del(...keys);
+        console.log("🗑️ Licenses cache invalidated after creation");
+      }
+    } catch (redisError) {
+      console.warn("⚠️ Failed to invalidate licenses cache:", redisError);
+    }
 
     return successResponse(
       license,
