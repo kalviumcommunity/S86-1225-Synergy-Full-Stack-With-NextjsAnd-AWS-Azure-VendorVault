@@ -1,21 +1,348 @@
-# VendorVault - File Upload API with AWS S3 Pre-Signed URLs & SendGrid Email Service
+# VendorVault - Vendor Management System
 
 ## Overview
 
-Secure file upload system using **AWS S3 Pre-Signed URLs** for direct client-to-S3 uploads without exposing backend credentials, combined with **SendGrid Transactional Email Service** for automated notifications.
+VendorVault is a comprehensive vendor management platform built with **Next.js 13+ App Router**, featuring secure file uploads, authentication, email notifications, and complete routing structure with public, protected, and dynamic routes.
 
-## Features
+## Key Features
 
-- ✅ **S3 Pre-Signed URLs** - Secure direct uploads with 60-second TTL
-- ✅ **SendGrid Integration** - Production-ready email service
-- ✅ **HTML Email Templates** - Welcome, password reset, vendor applications, license approvals
-- ✅ **Email Logging** - Console logging with message IDs for debugging
-- ✅ **Error Handling** - Graceful error handling with detailed error messages
-- ✅ **Rate Limiting Ready** - Template for implementing backoff strategies
+- ✅ **Page Routing & Dynamic Routes** - Next.js App Router with public/protected route structure
+- ✅ **Middleware Authentication** - JWT-based route protection with automatic redirects
+- ✅ **Dynamic User Routes** - Parameterized routes for user profiles (/users/[id])
+- ✅ **Custom 404 Page** - User-friendly error handling with navigation
+- ✅ **Global Navigation** - Breadcrumb support and consistent layout
+- ✅ **S3 File Upload** - Pre-signed URLs for secure direct uploads
+- ✅ **SendGrid Email** - Transactional email service integration
+- ✅ **Protected Dashboards** - Authenticated user and vendor dashboards
 
 ---
 
-## Part 1: S3 File Upload Architecture
+## Part 1: Page Routing and Dynamic Routes
+
+### Route Structure
+
+```
+VendorVault Application Routes
+├── Public Routes (No Auth Required)
+│   ├── / (Home Page)
+│   └── /login (User Login)
+│
+├── Protected Routes (JWT Token Required)
+│   ├── /dashboard (User Dashboard)
+│   └── /users/[id] (Dynamic User Profiles)
+│
+└── Special Routes
+    └── /404 (Custom Not Found Page)
+```
+
+### Route Map Table
+
+| Route | Type | Purpose | Access |
+|-------|------|---------|--------|
+| `/` | Public | Home page with route information | No auth needed |
+| `/login` | Public | User authentication form | No auth needed |
+| `/dashboard` | Protected | User profile dashboard | Requires JWT token |
+| `/users/1` | Public Dynamic | User 1 profile (dynamic route) | No auth needed |
+| `/users/2` | Public Dynamic | User 2 profile (dynamic route) | No auth needed |
+| `/404` | Special | Custom not found page | Displays for invalid routes |
+
+### Authentication Flow
+
+```
+Unauthenticated Request
+         ↓
+[Middleware Checks JWT Token]
+         ↓
+Token exists? → NO → Redirect to /login
+     ↓ YES
+Token valid? → NO → Redirect to /login
+     ↓ YES
+Route Allowed → Display Protected Page
+```
+
+### Implementation Details
+
+#### 1. Middleware (`middleware.ts`)
+
+Handles authentication for all protected routes:
+
+```typescript
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Public routes - no authentication required
+  if (pathname === "/" || pathname.startsWith("/login")) {
+    return NextResponse.next();
+  }
+
+  // Protected routes - require authentication
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/users")) {
+    const token = req.cookies.get("token")?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+    try {
+      jwt.verify(token, JWT_SECRET);
+      return NextResponse.next();
+    } catch {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+  }
+  return NextResponse.next();
+}
+```
+
+**Key Features:**
+- ✅ JWT token verification from cookies
+- ✅ Automatic redirect to login for unauthenticated users
+- ✅ Public routes bypass authentication
+- ✅ Protected routes enforce token validation
+
+#### 2. Public Routes
+
+**Home Page** (`app/page.tsx`)
+- Welcome message with route overview
+- Links to login and dashboard
+- Route structure visualization
+- Feature descriptions
+
+**Login Page** (`app/auth/login/page.tsx`)
+- Mock authentication form
+- Email and password inputs
+- Demo credentials display
+- Automatic token storage in cookies
+- Redirect to dashboard after login
+
+#### 3. Protected Routes
+
+**Dashboard** (`app/dashboard/page.tsx`)
+- User profile information
+- Statistics display (Documents, Applications, Licenses)
+- Only accessible with valid JWT token
+- Automatic redirect to login if not authenticated
+
+#### 4. Dynamic Routes
+
+**User Profiles** (`app/users/[id]/page.tsx`)
+
+Dynamic routes allow one component to handle multiple URLs:
+
+```typescript
+interface Props {
+  params: { id: string };
+}
+
+export default async function UserProfile({ params }: Props) {
+  const { id } = params;
+  const user = users[id]; // Look up user by ID
+
+  return (
+    <main>
+      <h1>{user.name}</h1>
+      <p>Email: {user.email}</p>
+      <p>Role: {user.role}</p>
+    </main>
+  );
+}
+```
+
+**Test URLs:**
+- http://localhost:3000/users/1 → Shows Alex Johnson's profile
+- http://localhost:3000/users/2 → Shows Sam Williams's profile
+
+**Benefits:**
+- 🎯 Single component handles unlimited users
+- 📈 Scalability without code duplication
+- 🔍 SEO-friendly URLs (each user gets unique URL)
+- ⚡ Better performance than query parameters
+
+#### 5. Error Handling
+
+**Custom 404 Page** (`app/not-found.tsx`)
+- Displays for non-existent routes
+- User-friendly error message
+- Navigation links to home, dashboard, and other routes
+- Available routes list for help
+
+**Screenshots:**
+- 404 page shows "Page Not Found" with route suggestions
+- Helpful links: Home, Dashboard, Available Routes list
+
+### Layout and Navigation
+
+**Global Layout** (`app/layout.tsx`)
+
+```tsx
+<nav className="flex gap-6 p-4 bg-gray-100 border-b">
+  <Link href="/">Home</Link>
+  <Link href="/login">Login</Link>
+  <Link href="/dashboard">Dashboard</Link>
+  <Link href="/users/1">User 1</Link>
+  <Link href="/users/2">User 2</Link>
+</nav>
+```
+
+**Features:**
+- ✅ Navigation bar on all pages
+- ✅ Links to all major routes
+- ✅ Footer with copyright
+- ✅ Consistent styling with Tailwind CSS
+
+### Testing Routes
+
+#### Test Public Routes (No Login Required)
+```
+1. Navigate to http://localhost:3000
+   Expected: Home page with route overview displays
+
+2. Navigate to http://localhost:3000/login
+   Expected: Login form displays with demo credentials
+
+3. Navigate to http://localhost:3000/users/1
+   Expected: User 1 (Alex Johnson) profile displays
+
+4. Navigate to http://localhost:3000/users/2
+   Expected: User 2 (Sam Williams) profile displays
+```
+
+#### Test Protected Routes (Requires Login)
+```
+1. Navigate to http://localhost:3000/dashboard (without login)
+   Expected: Redirected to /login automatically
+
+2. Click "Login" on login page
+   Token: Automatically saved to cookies
+   Redirect: To /dashboard
+
+3. Navigate to http://localhost:3000/dashboard (with token)
+   Expected: Dashboard displays with user info
+
+4. Clear cookies and refresh
+   Expected: Redirected to login (token removed)
+```
+
+#### Test Dynamic Routes
+```
+1. Visit /users/1
+   Expected: Displays "Alex Johnson" profile
+   
+2. Visit /users/2
+   Expected: Displays "Sam Williams" profile
+   
+3. Visit /users/999
+   Expected: Shows "User Not Found" error message
+```
+
+#### Test 404 Page
+```
+1. Navigate to /nonexistent-route
+   Expected: Custom 404 page displays with helpful navigation
+   
+2. Click "Go to Home" or "Go to Dashboard"
+   Expected: Navigation works correctly
+```
+
+### Route Protection Behavior
+
+| Scenario | Behavior |
+|----------|----------|
+| Visit `/` without token | ✅ Access granted (public route) |
+| Visit `/login` without token | ✅ Access granted (public route) |
+| Visit `/dashboard` without token | ❌ Redirected to `/login` |
+| Visit `/dashboard` with valid token | ✅ Access granted |
+| Visit `/dashboard` with expired token | ❌ Redirected to `/login` |
+| Visit `/invalid-route` | ⚠️ Shows custom 404 page |
+
+### Breadcrumb Navigation
+
+**Dynamic User Page Example:**
+```
+Home / Users / 1
+Home / Users / 2
+```
+
+**Benefits:**
+- 📍 Users know their location in the app
+- 🔗 Can navigate back to parent routes
+- 🔍 SEO benefits (breadcrumb structured data)
+- ♿ Accessibility improvements (screen readers)
+
+---
+
+## Reflection: SEO, Breadcrumbs, and Error Handling
+
+### Dynamic Routing for Scalability
+
+**How Dynamic Routes Scale:**
+1. **Single Component, Multiple URLs** - One `[id]/page.tsx` serves `/users/1`, `/users/2`, `/users/999`
+2. **No Code Duplication** - No need to create separate files for each user
+3. **Database Integration Ready** - Easily connect to fetch real user data: `const user = await db.users.findById(id)`
+4. **SEO Performance** - Each user gets a unique, crawlable URL (better than query parameters like `?id=1`)
+
+**Example Scalability:**
+```
+Without Dynamic Routes (Hard to Scale):
+  /users/1/page.tsx
+  /users/2/page.tsx
+  /users/3/page.tsx
+  ... (need new file for each user)
+
+With Dynamic Routes (Scalable):
+  /users/[id]/page.tsx (handles all users)
+```
+
+### Breadcrumb Navigation Benefits
+
+**User Experience:**
+- Users immediately understand where they are in the app hierarchy
+- One-click navigation back to parent pages (Home → Dashboard)
+- Reduces cognitive load when navigating complex structures
+
+**SEO Benefits:**
+- Search engines can understand page hierarchy
+- Breadcrumb structured data improves rankings
+- Crawlers better understand site structure
+- Users can navigate through breadcrumbs instead of back button
+
+**Implementation:**
+```tsx
+<nav>
+  <Link href="/">Home</Link> / <Link href="/users">Users</Link> / {id}
+</nav>
+```
+
+### Error Handling Strategy
+
+**Graceful Degradation:**
+1. **Missing Routes** → Custom 404 page (not blank/error page)
+2. **Invalid Parameters** → Show helpful error message with available options
+3. **Authentication Failures** → Redirect to login (not error page)
+4. **User Feedback** → Always tell users what went wrong and how to fix it
+
+**Error Page Content:**
+```
+✗ 404 - Page Not Found
+  ↓
+"This page doesn't exist"
+  ↓
+"Available Routes: Home, Dashboard, User 1, User 2"
+  ↓
+Action: [Go Home] [Go to Dashboard]
+```
+
+### Key Learnings
+
+1. **File-Based Routing** is powerful for Next.js - folder structure = URL structure
+2. **Dynamic Routes** with `[param]` eliminate code duplication and scale well
+3. **Middleware** centralizes authentication logic - single source of truth
+4. **Breadcrumbs** improve both UX and SEO simultaneously
+5. **Custom Error Pages** make apps feel polished and professional
+6. **Route Protection** is essential for security - never trust client-side auth
+7. **Consistent Navigation** across all pages improves usability
+
+---
+
+## Part 2: S3 File Upload Architecture
 
 ```
 Client → Request Pre-Signed URL → Backend
