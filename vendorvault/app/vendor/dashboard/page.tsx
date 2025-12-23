@@ -1,17 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import useSWR, { mutate } from "swr";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/hooks/useUI";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-
-interface VendorData {
-  id: number;
-  businessName: string;
-  stationName: string;
-  createdAt: string;
-}
+import { fetcherWithAuth } from "@/lib/fetcher";
 
 interface LicenseData {
   id: number;
@@ -28,10 +23,44 @@ export default function VendorDashboard() {
   const { user, isAuthenticated, isVendor } = useAuth();
   const { isDarkMode, showError } = useUI();
 
-  const [vendor, setVendor] = useState<VendorData | null>(null);
-  const [licenses, setLicenses] = useState<LicenseData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasApplied, setHasApplied] = useState(false);
+  // SWR for vendor data
+  const {
+    data: vendorResponse,
+    error: vendorError,
+    isLoading: vendorLoading,
+  } = useSWR(
+    user?.id ? `/api/vendors?userId=${user.id}` : null,
+    fetcherWithAuth,
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 30000, // Auto-refresh every 30 seconds
+      onError: (err) => {
+        console.error("Error fetching vendor data:", err);
+        showError("Failed to load vendor data");
+      },
+    }
+  );
+
+  const vendor =
+    vendorResponse?.success && vendorResponse.data?.length > 0
+      ? vendorResponse.data[0]
+      : null;
+
+  // SWR for licenses data - only fetch if we have a vendor
+  const { data: licensesResponse, isLoading: licensesLoading } = useSWR(
+    vendor?.id ? `/api/licenses?vendorId=${vendor.id}` : null,
+    fetcherWithAuth,
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 30000,
+      onError: (err) => {
+        console.error("Error fetching licenses:", err);
+      },
+    }
+  );
+
+  const licenses = licensesResponse?.success ? licensesResponse.data : [];
+  const loading = vendorLoading || (vendor && licensesLoading);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -44,75 +73,9 @@ export default function VendorDashboard() {
       router.push("/dashboard");
       return;
     }
+  }, [isAuthenticated, user, isVendor, router, showError]);
 
-    fetchVendorData();
-  }, [isAuthenticated, user]);
-
-  const fetchVendorData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch vendor profile
-      const vendorRes = await fetch(`/api/vendors?userId=${user?.id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("vendorvault_token")}`,
-        },
-      });
-
-      if (!vendorRes.ok) {
-        showError("Failed to load vendor data");
-        return;
-      }
-
-      const vendorData = await vendorRes.json();
-
-      if (vendorData.success && vendorData.data.length > 0) {
-        setVendor(vendorData.data[0]);
-        setHasApplied(true);
-
-        // Fetch licenses for this vendor
-        const licensesRes = await fetch(
-          `/api/licenses?vendorId=${vendorData.data[0].id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("vendorvault_token")}`,
-            },
-          }
-        );
-
-        if (licensesRes.ok) {
-          const licensesData = await licensesRes.json();
-          if (licensesData.success) {
-            setLicenses(licensesData.data);
-          }
-        }
-      } else {
-        setHasApplied(false);
-      }
-    } catch (error) {
-      console.error("Error fetching vendor data:", error);
-      showError("Failed to load dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400";
-      case "PENDING":
-        return "text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "REJECTED":
-        return "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400";
-      case "EXPIRED":
-        return "text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-400";
-      case "REVOKED":
-        return "text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400";
-      default:
-        return "text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400";
-    }
-  };
+  const hasApplied = vendor !== null;
 
   if (loading) {
     return (
@@ -123,6 +86,25 @@ export default function VendorDashboard() {
             Loading dashboard...
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (vendorError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="p-6 max-w-md">
+          <div className="text-red-600 text-center">
+            <p className="font-bold mb-2">Error Loading Dashboard</p>
+            <p className="text-sm">{vendorError.message}</p>
+            <Button
+              onClick={() => mutate(`/api/vendors?userId=${user?.id}`)}
+              className="mt-4"
+            >
+              Retry
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -158,9 +140,32 @@ export default function VendorDashboard() {
     );
   }
 
-  const pendingLicense = licenses.find((l) => l.status === "PENDING");
-  const approvedLicense = licenses.find((l) => l.status === "APPROVED");
-  const rejectedLicense = licenses.find((l) => l.status === "REJECTED");
+  const pendingLicense = licenses.find(
+    (l: LicenseData) => l.status === "PENDING"
+  );
+  const approvedLicense = licenses.find(
+    (l: LicenseData) => l.status === "APPROVED"
+  );
+  const rejectedLicense = licenses.find(
+    (l: LicenseData) => l.status === "REJECTED"
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "APPROVED":
+        return "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400";
+      case "PENDING":
+        return "text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "REJECTED":
+        return "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400";
+      case "EXPIRED":
+        return "text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-400";
+      case "REVOKED":
+        return "text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400";
+      default:
+        return "text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400";
+    }
+  };
 
   return (
     <div
