@@ -21,19 +21,61 @@ export async function POST(request: NextRequest) {
 
     const body = validation.data;
 
-    // Create vendor application
+    // Create vendor application with all comprehensive data
     const vendor = await createVendor({
       userId: body.userId,
+
+      // Personal Information
+      fullName: body.fullName,
+      email: body.email,
+      phone: body.phone,
+      alternatePhone: body.alternatePhone,
+      dateOfBirth: body.dateOfBirth,
+      gender: body.gender,
+      aadharNumber: body.aadharNumber,
+
+      // Business Information
       businessName: body.businessName,
-      stallType: body.stallType,
-      stationName: body.stationName,
-      stallDescription: body.stallDescription,
-      platformNumber: body.platformNumber,
-      stallLocationDescription: body.stallLocationDescription,
-      address: body.address,
+      businessType: body.businessType,
+      businessAddress: body.businessAddress,
       city: body.city,
       state: body.state,
       pincode: body.pincode,
+      gstNumber: body.gstNumber,
+      panNumber: body.panNumber,
+      yearsInBusiness: body.yearsInBusiness,
+
+      // Railway Station Information
+      preferredStation: body.preferredStation,
+      stationType: body.stationType,
+      shopNumber: body.shopNumber,
+      platformNumber: body.platformNumber,
+      shopArea: body.shopArea,
+
+      // Product/Service Information
+      productCategory: body.productCategory,
+      productDescription: body.productDescription,
+      estimatedDailySales: body.estimatedDailySales,
+      operatingHours: body.operatingHours,
+
+      // Document URLs
+      aadharUrl: body.aadharUrl,
+      panUrl: body.panUrl,
+      gstUrl: body.gstUrl,
+      businessProofUrl: body.businessProofUrl,
+      photoUrl: body.photoUrl,
+      shopPhotosUrl: body.shopPhotosUrl,
+
+      // Bank Information
+      bankName: body.bankName,
+      accountNumber: body.accountNumber,
+      ifscCode: body.ifscCode,
+      accountHolderName: body.accountHolderName,
+      branchName: body.branchName,
+
+      // Declarations
+      agreeToTerms: body.agreeToTerms,
+      declarationAccurate: body.declarationAccurate,
     });
 
     // Invalidate vendors cache after new application
@@ -55,9 +97,36 @@ export async function POST(request: NextRequest) {
       console.warn("⚠️ Failed to invalidate user cache:", redisError);
     }
 
+    // Send application confirmation email
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: body.userId },
+        select: { email: true, name: true },
+      });
+
+      if (user?.email) {
+        const { sendVendorApplicationEmail } =
+          await import("@/services/email.service");
+        const { vendorApplicationTemplate } =
+          await import("@/lib/email-templates");
+
+        const emailTemplate = vendorApplicationTemplate(
+          user.name,
+          "pending",
+          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/vendor/dashboard`
+        );
+
+        await sendVendorApplicationEmail(user.email, emailTemplate);
+        console.log("✅ Application confirmation email sent to:", user.email);
+      }
+    } catch (emailError) {
+      console.error("⚠️ Email notification failed:", emailError);
+      // Don't fail the application if email fails
+    }
+
     return successResponse(
       vendor,
-      "Vendor application submitted successfully",
+      "Vendor application submitted successfully! Our team will review it shortly.",
       undefined,
       201 // Created
     );

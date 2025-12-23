@@ -1,6 +1,6 @@
 /**
  * @route POST /api/license/approve
- * @description Approve a license application
+ * @description Approve a license application with QR code generation and email notification
  * @access Private (Admin only)
  */
 
@@ -10,6 +10,10 @@ import { approveLicense } from "@/services/license.service";
 import { licenseApproveSchema } from "@/lib/schemas/licenseSchema";
 import { validateRequestData } from "@/lib/validation";
 import redis from "@/lib/redis";
+import { generateQRCode } from "@/lib/qr";
+import { sendLicenseApprovalEmail } from "@/services/email.service";
+import { licenseApprovalTemplate } from "@/lib/email-templates";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +34,54 @@ export async function POST(request: NextRequest) {
       expiresAt: new Date(body.expiresAt),
     });
 
+    // Generate QR code for the approved license
+    let qrCodeUrl = "";
+    try {
+      qrCodeUrl = await generateQRCode(license.licenseNumber);
+      console.log("✅ QR Code generated:", qrCodeUrl);
+    } catch (qrError) {
+      console.error("⚠️ QR code generation failed:", qrError);
+      // Don't fail the entire approval if QR generation fails
+    }
+
+    // Send approval email notification
+    try {
+      // Get vendor email
+      const fullLicense = await prisma.license.findUnique({
+        where: { id: license.id },
+        include: {
+          vendor: {
+            include: {
+              user: {
+                select: { email: true, name: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (fullLicense?.vendor?.user?.email) {
+        const emailTemplate = licenseApprovalTemplate(
+          fullLicense.vendor.user.name,
+          license.licenseNumber,
+          qrCodeUrl,
+          license.expiresAt?.toLocaleDateString() || "N/A"
+        );
+
+        await sendLicenseApprovalEmail(
+          fullLicense.vendor.user.email,
+          emailTemplate
+        );
+        console.log(
+          "✅ Approval email sent to:",
+          fullLicense.vendor.user.email
+        );
+      }
+    } catch (emailError) {
+      console.error("⚠️ Email notification failed:", emailError);
+      // Don't fail the entire approval if email fails
+    }
+
     // Invalidate licenses cache after approval
     try {
       const keys = await redis.keys("licenses:*");
@@ -41,7 +93,10 @@ export async function POST(request: NextRequest) {
       console.warn("⚠️ Failed to invalidate licenses cache:", redisError);
     }
 
-    return successResponse(license, "License approved successfully");
+    return successResponse(
+      { ...license, qrCodeUrl },
+      "License approved successfully. QR code generated and email sent."
+    );
   } catch (error) {
     console.error("Error approving license:", error);
 

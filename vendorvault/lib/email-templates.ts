@@ -134,8 +134,10 @@ export const vendorApplicationTemplate = (
 `;
 
 export const licenseApprovalTemplate = (
+  vendorName: string,
   licenseNumber: string,
-  approvalUrl: string
+  qrCodeUrl: string,
+  expiryDate: string
 ) => `
   <!DOCTYPE html>
   <html>
@@ -146,6 +148,7 @@ export const licenseApprovalTemplate = (
         .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { padding: 20px; }
         .license-box { background-color: #f0f8ff; border: 2px solid #4CAF50; padding: 15px; border-radius: 4px; margin: 20px 0; text-align: center; }
+        .qr-code { text-align: center; margin: 20px 0; }
         .button { display: inline-block; margin: 20px 0; padding: 12px 30px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; }
         .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }
       </style>
@@ -156,20 +159,80 @@ export const licenseApprovalTemplate = (
           <h1>🎉 License Approved!</h1>
         </div>
         <div class="content">
-          <p>Congratulations! Your license has been approved by the administrator.</p>
+          <p>Hi <strong>${vendorName}</strong>,</p>
+          <p>Congratulations! Your license application has been approved by the administrator.</p>
           <div class="license-box">
             <h2>License Number:</h2>
             <p style="font-size: 24px; font-weight: bold; color: #4CAF50;">${licenseNumber}</p>
+            <p><strong>Valid Until:</strong> ${expiryDate}</p>
           </div>
-          <p>Your license is now active. You can view more details and download your license certificate:</p>
-          <a href="${approvalUrl}" class="button">View License Details</a>
+          ${
+            qrCodeUrl
+              ? `
+          <div class="qr-code">
+            <p><strong>Your License QR Code:</strong></p>
+            <img src="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${qrCodeUrl}" alt="License QR Code" style="max-width: 300px;" />
+            <p style="font-size: 12px; color: #666;">Scan this QR code for quick verification</p>
+          </div>
+          `
+              : ""
+          }
           <p><strong>Next Steps:</strong></p>
           <ul>
-            <li>Download your license certificate</li>
-            <li>Share your QR code with clients</li>
-            <li>Start your vendor operations</li>
+            <li>Download your license certificate from your dashboard</li>
+            <li>Display your QR code at your vendor location</li>
+            <li>Start your authorized vendor operations</li>
           </ul>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/vendor/dashboard" class="button">View Dashboard</a>
           <p>If you have any questions, reach out to our support team.</p>
+        </div>
+        <div class="footer">
+          <p>© 2025 VendorVault. This is an automated email. Please do not reply.</p>
+        </div>
+      </div>
+    </body>
+  </html>
+`;
+
+export const licenseRejectionTemplate = (
+  vendorName: string,
+  licenseNumber: string,
+  rejectionReason: string
+) => `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { background-color: #f44336; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .rejection-box { background-color: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 20px 0; }
+        .button { display: inline-block; margin: 20px 0; padding: 12px 30px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 4px; }
+        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>License Application Update</h1>
+        </div>
+        <div class="content">
+          <p>Hi <strong>${vendorName}</strong>,</p>
+          <p>We regret to inform you that your license application <strong>${licenseNumber}</strong> has not been approved at this time.</p>
+          <div class="rejection-box">
+            <h3>Reason for Rejection:</h3>
+            <p>${rejectionReason}</p>
+          </div>
+          <p><strong>What You Can Do:</strong></p>
+          <ul>
+            <li>Review the rejection reason carefully</li>
+            <li>Update your application with the required information</li>
+            <li>Resubmit your application after addressing the issues</li>
+            <li>Contact our support team if you need clarification</li>
+          </ul>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/vendor/apply" class="button">Update & Resubmit Application</a>
+          <p>If you have any questions about this decision, please contact our support team.</p>
         </div>
         <div class="footer">
           <p>© 2025 VendorVault. This is an automated email. Please do not reply.</p>

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { LayoutWrapper } from "@/components";
+import { AuthProvider } from "@/context/AuthContext";
+import { UIProvider } from "@/context/UIContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,9 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="m-0 p-0">
-        <LayoutWrapper>{children}</LayoutWrapper>
+    <html lang="en" suppressHydrationWarning>
+      <body className="m-0 p-0" suppressHydrationWarning>
+        <AuthProvider>
+          <UIProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </UIProvider>
+        </AuthProvider>
       </body>
     </html>
   );
