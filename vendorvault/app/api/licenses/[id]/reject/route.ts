@@ -1,6 +1,6 @@
 /**
  * @route POST /api/licenses/[id]/reject
- * @description Reject a license application
+ * @description Reject a license application with email notification
  * @access Private (Admin only)
  */
 
@@ -8,6 +8,9 @@ import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { rejectLicense } from "@/services/license.service";
 import redis from "@/lib/redis";
+import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/services/email.service";
+import { licenseRejectionTemplate } from "@/lib/email-templates";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -38,6 +41,44 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       rejectionReason: body.rejectionReason,
     });
 
+    // Send rejection email notification
+    try {
+      // Get vendor email
+      const fullLicense = await prisma.license.findUnique({
+        where: { id: licenseId },
+        include: {
+          vendor: {
+            include: {
+              user: {
+                select: { email: true, name: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (fullLicense?.vendor?.user?.email) {
+        const emailTemplate = licenseRejectionTemplate(
+          fullLicense.vendor.user.name,
+          fullLicense.licenseNumber,
+          body.rejectionReason
+        );
+
+        await sendEmail({
+          to: fullLicense.vendor.user.email,
+          subject: "License Application Update - VendorVault",
+          html: emailTemplate,
+        });
+        console.log(
+          "✅ Rejection email sent to:",
+          fullLicense.vendor.user.email
+        );
+      }
+    } catch (emailError) {
+      console.error("⚠️ Email notification failed:", emailError);
+      // Don't fail the entire rejection if email fails
+    }
+
     // Invalidate licenses cache after rejection
     try {
       const keys = await redis.keys("licenses:*");
@@ -49,7 +90,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       console.warn("⚠️ Failed to invalidate licenses cache:", redisError);
     }
 
-    return successResponse(license, "License rejected successfully");
+    return successResponse(
+      license,
+      "License rejected successfully. Notification email sent."
+    );
   } catch (error) {
     console.error("Error rejecting license:", error);
 

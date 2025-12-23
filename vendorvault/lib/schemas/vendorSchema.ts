@@ -14,62 +14,68 @@ export const vendorApplySchema = z.object({
     .union([z.number(), z.string().regex(/^\d+$/, "Must be a valid number")])
     .transform(Number)
     .refine((n) => n > 0, "User ID must be positive"),
+
+  // Personal Information
+  fullName: z.string().min(2).max(100),
+  email: z.string().email(),
+  phone: z.string().min(10).max(15),
+  alternatePhone: z.string().optional().nullable(),
+  dateOfBirth: z.string(),
+  gender: z.string().optional().nullable(),
+  aadharNumber: z.string().regex(/^\d{12}$/, "Aadhar must be 12 digits"),
+
+  // Business Information
   businessName: z
     .string()
     .min(2, "Business name must be at least 2 characters")
     .max(100, "Business name must not exceed 100 characters"),
-  stallType: z.enum(
-    [
-      "TEA_STALL",
-      "SNACKS",
-      "BOOKSHOP",
-      "NEWSPAPER",
-      "GIFTS_SOUVENIRS",
-      "OTHER",
-    ],
-    {
-      errorMap: () => ({ message: "Invalid stall type" }),
-    }
-  ),
-  stationName: z
+  businessType: z.string(),
+  businessAddress: z.string().max(500),
+  city: z.string().max(50),
+  state: z.string().max(50),
+  pincode: z.string().regex(/^\d{6}$/, "Pincode must be exactly 6 digits"),
+  gstNumber: z.string().optional().nullable(),
+  panNumber: z.string().optional().nullable(),
+  yearsInBusiness: z.string().optional().nullable(),
+
+  // Railway Station Information
+  preferredStation: z
     .string()
     .min(2, "Station name must be at least 2 characters")
     .max(100, "Station name must not exceed 100 characters"),
-  stallDescription: z
-    .string()
-    .max(500, "Description must not exceed 500 characters")
-    .optional()
-    .nullable(),
-  platformNumber: z
-    .union([z.number(), z.string().regex(/^\d+$/, "Must be a valid number")])
-    .transform(Number)
-    .optional()
-    .nullable(),
-  stallLocationDescription: z
-    .string()
-    .max(300, "Location description must not exceed 300 characters")
-    .optional()
-    .nullable(),
-  address: z
-    .string()
-    .max(200, "Address must not exceed 200 characters")
-    .optional()
-    .nullable(),
-  city: z
-    .string()
-    .max(50, "City must not exceed 50 characters")
-    .optional()
-    .nullable(),
-  state: z
-    .string()
-    .max(50, "State must not exceed 50 characters")
-    .optional()
-    .nullable(),
-  pincode: z
-    .string()
-    .regex(/^\d{6}$/, "Pincode must be exactly 6 digits")
-    .optional()
-    .nullable(),
+  stationType: z.string(),
+  shopNumber: z.string().optional().nullable(),
+  platformNumber: z.string().optional().nullable(),
+  shopArea: z.string().optional().nullable(),
+
+  // Product/Service Information
+  productCategory: z.string(),
+  productDescription: z.string().max(1000),
+  estimatedDailySales: z.string().optional().nullable(),
+  operatingHours: z.string().optional().nullable(),
+
+  // Document URLs (uploaded separately)
+  aadharUrl: z.string().optional().nullable(),
+  panUrl: z.string().optional().nullable(),
+  gstUrl: z.string().optional().nullable(),
+  businessProofUrl: z.string().optional().nullable(),
+  photoUrl: z.string().optional().nullable(),
+  shopPhotosUrl: z.string().optional().nullable(),
+
+  // Bank Information
+  bankName: z.string().max(100),
+  accountNumber: z.string(),
+  ifscCode: z.string().max(11),
+  accountHolderName: z.string().max(100),
+  branchName: z.string().optional().nullable(),
+
+  // Declarations
+  agreeToTerms: z
+    .boolean()
+    .refine((val) => val === true, "Must agree to terms"),
+  declarationAccurate: z
+    .boolean()
+    .refine((val) => val === true, "Must declare accuracy"),
 });
 
 export type VendorApplyInput = z.infer<typeof vendorApplySchema>;

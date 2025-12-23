@@ -1,35 +1,42 @@
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useUI } from "@/hooks/useUI";
+
 export default function Dashboard() {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const { isDarkMode } = useUI();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+
+    // Role-based redirects
+    if (user?.role === "ADMIN") {
+      router.push("/admin/dashboard");
+    } else if (user?.role === "VENDOR") {
+      router.push("/vendor/dashboard");
+    } else if (user?.role === "INSPECTOR") {
+      router.push("/inspector/dashboard");
+    }
+  }, [isAuthenticated, user, router]);
+
   return (
-    <main className="flex flex-col items-center mt-10">
-      <div className="max-w-2xl w-full p-6 bg-white rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
-        <p className="text-lg text-gray-600 mb-6">
-          👤 Only logged-in users can see this page.
-        </p>
-
-        <div className="bg-green-50 border-l-4 border-green-600 p-4">
-          <p className="text-green-900">
-            ✓ You are authenticated! This is a protected route.
+    <main
+      className={`flex flex-col items-center justify-center min-h-screen ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}
+    >
+      <div className="max-w-2xl w-full p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p
+            className={`text-lg ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+          >
+            Redirecting to your dashboard...
           </p>
-        </div>
-
-        <div className="mt-8 grid grid-cols-2 gap-4">
-          <div className="p-4 bg-gray-50 rounded">
-            <h3 className="font-bold">Status</h3>
-            <p className="text-sm">Active</p>
-          </div>
-          <div className="p-4 bg-gray-50 rounded">
-            <h3 className="font-bold">Documents</h3>
-            <p className="text-sm">5 files</p>
-          </div>
-          <div className="p-4 bg-gray-50 rounded">
-            <h3 className="font-bold">Applications</h3>
-            <p className="text-sm">2 pending</p>
-          </div>
-          <div className="p-4 bg-gray-50 rounded">
-            <h3 className="font-bold">Licenses</h3>
-            <p className="text-sm">3 active</p>
-          </div>
         </div>
       </div>
     </main>

@@ -13,16 +13,58 @@ import { Vendor, StallType } from "@prisma/client";
 
 interface CreateVendorInput {
   userId: number;
+
+  // Personal Information
+  fullName: string;
+  email: string;
+  phone: string;
+  alternatePhone?: string | null;
+  dateOfBirth: string;
+  gender?: string | null;
+  aadharNumber: string;
+
+  // Business Information
   businessName: string;
-  stallType: StallType;
-  stationName: string;
-  stallDescription?: string;
-  platformNumber?: string;
-  stallLocationDescription?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
+  businessType: string;
+  businessAddress: string;
+  city: string;
+  state: string;
+  pincode: string;
+  gstNumber?: string | null;
+  panNumber?: string | null;
+  yearsInBusiness?: string | null;
+
+  // Railway Station Information
+  preferredStation: string;
+  stationType: string;
+  shopNumber?: string | null;
+  platformNumber?: string | null;
+  shopArea?: string | null;
+
+  // Product/Service Information
+  productCategory: string;
+  productDescription: string;
+  estimatedDailySales?: string | null;
+  operatingHours?: string | null;
+
+  // Document URLs
+  aadharUrl?: string | null;
+  panUrl?: string | null;
+  gstUrl?: string | null;
+  businessProofUrl?: string | null;
+  photoUrl?: string | null;
+  shopPhotosUrl?: string | null;
+
+  // Bank Information
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountHolderName: string;
+  branchName?: string | null;
+
+  // Declarations
+  agreeToTerms: boolean;
+  declarationAccurate: boolean;
 }
 
 /**
@@ -59,20 +101,38 @@ export async function createVendor(
         throw new Error("Vendor profile already exists for this user");
       }
 
-      // Step 3: Create vendor profile
+      // Step 3: Map product category to StallType enum
+      const stallTypeMapping: Record<string, StallType> = {
+        food_beverages: "FAST_FOOD",
+        books_magazines: "BOOK_SHOP",
+        snacks_packaged: "SNACK_SHOP",
+        tea_coffee: "TEA_STALL",
+        general_store: "GENERAL_STORE",
+        handicrafts: "OTHER",
+        electronics: "ELECTRONICS",
+        others: "OTHER",
+      };
+
+      const stallType = stallTypeMapping[data.productCategory] || "OTHER";
+
+      // Step 4: Create vendor profile with all data
       const vendor = await tx.vendor.create({
         data: {
           userId: data.userId,
           businessName: data.businessName,
-          stallType: data.stallType,
-          stationName: data.stationName,
-          stallDescription: data.stallDescription,
+          stallType: stallType,
+          stationName: data.preferredStation,
+          stallDescription: data.productDescription,
           platformNumber: data.platformNumber,
-          stallLocationDescription: data.stallLocationDescription,
-          address: data.address,
+          stallLocationDescription: `${data.stationType} - Shop: ${data.shopNumber || "TBD"} - Area: ${data.shopArea || "N/A"} sq ft`,
+          address: data.businessAddress,
           city: data.city,
           state: data.state,
           pincode: data.pincode,
+          aadhaarNumber: data.aadharNumber,
+          panNumber: data.panNumber,
+          gstNumber: data.gstNumber,
+          stallPhotoUrl: data.shopPhotosUrl,
         },
         select: {
           id: true,

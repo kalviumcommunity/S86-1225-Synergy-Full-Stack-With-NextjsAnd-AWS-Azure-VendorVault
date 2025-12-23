@@ -1,16 +1,47 @@
 /**
- * Email Service using SendGrid
+ * Email Service using NodeMailer (Production-ready with multiple providers)
  * Handles sending transactional emails for VendorVault
  */
 
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
-// Initialize SendGrid with API key
-if (!process.env.SENDGRID_API_KEY) {
-  console.warn("⚠️ SENDGRID_API_KEY not configured. Email sending disabled.");
+// Email configuration
+const EMAIL_CONFIG = {
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "587"),
+  secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASSWORD || "",
+  },
+};
+
+// Create reusable transporter
+let transporter: nodemailer.Transporter | null = null;
+
+function getTransporter() {
+  if (!transporter) {
+    if (!EMAIL_CONFIG.auth.user || !EMAIL_CONFIG.auth.pass) {
+      console.warn(
+        "⚠️ SMTP credentials not configured. Email sending will be simulated."
+      );
+      // Create a test account for development
+      return nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: {
+          user: "test@ethereal.email",
+          pass: "test123",
+        },
+      });
+    }
+
+    transporter = nodemailer.createTransport(EMAIL_CONFIG);
+    console.log("✅ Email transporter initialized");
+  }
+  return transporter;
 }
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
 export interface EmailPayload {
   to: string;
@@ -23,40 +54,43 @@ export interface EmailResponse {
   success: boolean;
   messageId?: string;
   error?: string;
+  previewUrl?: string; // For development testing
 }
 
 /**
- * Send email using SendGrid
+ * Send email using NodeMailer
  * @param payload Email configuration (to, subject, html)
  * @returns Success status with message ID
  */
 export async function sendEmail(payload: EmailPayload): Promise<EmailResponse> {
   try {
-    if (!process.env.SENDGRID_API_KEY) {
-      throw new Error("SendGrid API key not configured");
-    }
+    const transport = getTransporter();
 
     const emailData = {
       to: payload.to,
       from:
         payload.from ||
-        process.env.SENDGRID_SENDER ||
-        "noreply@vendorvault.com",
+        process.env.EMAIL_FROM ||
+        "VendorVault <noreply@vendorvault.com>",
       subject: payload.subject,
       html: payload.html,
     };
 
-    const response = await sgMail.send(emailData);
+    const info = await transport.sendMail(emailData);
 
-    // SendGrid returns an array with response details
-    const messageId = response[0].headers["x-message-id"] || "unknown";
+    console.log("✅ Email sent successfully to", payload.to);
+    console.log("📧 Message ID:", info.messageId);
 
-    console.log(`✅ Email sent successfully to ${payload.to}`);
-    console.log(`📧 Message ID: ${messageId}`);
+    // Get preview URL for development (Ethereal email)
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log("📧 Preview URL:", previewUrl);
+    }
 
     return {
       success: true,
-      messageId,
+      messageId: info.messageId,
+      previewUrl: previewUrl || undefined,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -94,6 +128,48 @@ export async function sendPasswordResetEmail(
   return sendEmail({
     to: email,
     subject: "Reset Your VendorVault Password",
+    html: template,
+  });
+}
+
+/**
+ * Send vendor application status email
+ */
+export async function sendVendorApplicationEmail(
+  email: string,
+  template: string
+): Promise<EmailResponse> {
+  return sendEmail({
+    to: email,
+    subject: "Vendor Application Status - VendorVault",
+    html: template,
+  });
+}
+
+/**
+ * Send license approval email
+ */
+export async function sendLicenseApprovalEmail(
+  email: string,
+  template: string
+): Promise<EmailResponse> {
+  return sendEmail({
+    to: email,
+    subject: "🎉 License Approved - VendorVault",
+    html: template,
+  });
+}
+
+/**
+ * Send license rejection email
+ */
+export async function sendLicenseRejectionEmail(
+  email: string,
+  template: string
+): Promise<EmailResponse> {
+  return sendEmail({
+    to: email,
+    subject: "License Application Update - VendorVault",
     html: template,
   });
 }

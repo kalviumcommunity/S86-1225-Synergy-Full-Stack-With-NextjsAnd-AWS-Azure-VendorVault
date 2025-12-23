@@ -1,17 +1,23 @@
 interface ButtonProps {
-  label: string;
+  label?: string;
+  children?: React.ReactNode;
   onClick?: () => void;
   variant?: "primary" | "secondary" | "danger";
   disabled?: boolean;
   fullWidth?: boolean;
+  className?: string;
+  type?: "button" | "submit" | "reset";
 }
 
-export default function Button({
+export function Button({
   label,
+  children,
   onClick,
   variant = "primary",
   disabled = false,
   fullWidth = false,
+  className = "",
+  type = "button",
 }: ButtonProps) {
   const baseStyles =
     "px-4 py-2 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
@@ -26,11 +32,14 @@ export default function Button({
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${baseStyles} ${variantStyles[variant]} ${widthStyles}`}
+      className={`${baseStyles} ${variantStyles[variant]} ${widthStyles} ${className}`}
     >
-      {label}
+      {children || label}
     </button>
   );
 }
+
+export default Button;
