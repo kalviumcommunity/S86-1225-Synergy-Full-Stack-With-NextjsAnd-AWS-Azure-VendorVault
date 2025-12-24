@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { LayoutWrapper } from "@/components";
 import { AuthProvider } from "@/context/AuthContext";
 import { UIProvider } from "@/context/UIContext";
+import { ToastProvider } from "@/components/ui";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body className="m-0 p-0" suppressHydrationWarning>
         <AuthProvider>
           <UIProvider>
+            <ToastProvider />
             <LayoutWrapper>{children}</LayoutWrapper>
           </UIProvider>
         </AuthProvider>

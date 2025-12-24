@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import Link from "next/link";
 import { useState } from "react";
+import { Loader, Modal, showToast } from "@/components/ui";
 
 interface User {
   id: string;
@@ -20,6 +21,9 @@ export default function UsersPage() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Filter users based on search
   const filteredUsers = data?.filter(
@@ -29,6 +33,7 @@ export default function UsersPage() {
   );
 
   if (error) {
+    showToast("error", error.message || "Failed to load users.");
     return (
       <main className="p-6">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -41,11 +46,10 @@ export default function UsersPage() {
 
   if (isLoading) {
     return (
-      <main className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </main>
+      <>
+        <Loader isLoading={true} label="Loading users..." />
+        <main className="p-6" />
+      </>
     );
   }
 
@@ -87,9 +91,9 @@ export default function UsersPage() {
             {filteredUsers.map((user) => (
               <li
                 key={user.id}
-                className="p-4 hover:bg-gray-50 transition-colors duration-150"
+                className="p-4 hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
               >
-                <Link href={`/users/${user.id}`} className="block">
+                <Link href={`/users/${user.id}`} className="block flex-1">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">
@@ -120,6 +124,16 @@ export default function UsersPage() {
                     </div>
                   </div>
                 </Link>
+                <button
+                  className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setModalOpen(true);
+                  }}
+                  aria-label={`Delete ${user.name}`}
+                >
+                  Delete
+                </button>
               </li>
             ))}
           </ul>
@@ -130,6 +144,35 @@ export default function UsersPage() {
         )}
       </div>
 
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={modalOpen}
+        title="Delete User?"
+        description={`Are you sure you want to delete ${selectedUser?.name}? This action cannot be undone.`}
+        onConfirm={async () => {
+          if (!selectedUser) return;
+          setDeleting(true);
+          showToast("loading", "Deleting user...");
+          try {
+            // Simulate API call
+            await new Promise((res) => setTimeout(res, 1500));
+            showToast("success", "User deleted successfully!");
+            setModalOpen(false);
+            setSelectedUser(null);
+          } catch (err) {
+            showToast("error", "Failed to delete user.");
+          } finally {
+            setDeleting(false);
+          }
+        }}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedUser(null);
+        }}
+        confirmText={deleting ? "Deleting..." : "Confirm"}
+        cancelText="Cancel"
+      />
+      <Loader isLoading={deleting} label="Deleting user..." />
       {/* Cache Info (for debugging) */}
       <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-600">
         <p className="font-semibold mb-2">SWR Cache Info:</p>
