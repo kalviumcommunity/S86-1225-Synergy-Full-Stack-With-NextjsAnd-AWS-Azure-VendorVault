@@ -4,18 +4,20 @@
  * @access Public
  */
 
-import { NextRequest } from "next/server";
-import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
+import { NextRequest, NextResponse } from "next/server";
+import { errorResponse, ApiErrors } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  REFRESH_TOKEN_COOKIE_OPTIONS,
+} from "@/lib/auth";
 import { loginSchema } from "@/lib/schemas/authSchema";
 import { validateRequestData } from "@/lib/validation";
 
 // JWT Secret from environment variable (fallback for development only)
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production";
-const JWT_EXPIRY = process.env.JWT_EXPIRY || "1h"; // Default: 1 hour
+// No longer needed - using auth.ts functions
 
 /**
  * POST /api/auth/login - Authenticate user and generate JWT token
@@ -75,35 +77,39 @@ export async function POST(request: NextRequest) {
       return ApiErrors.UNAUTHORIZED("Invalid email or password");
     }
 
-    // Generate JWT token with user information
-    // Token payload includes user ID, email, and role for authorization
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
-      JWT_SECRET,
-      {
-        expiresIn: JWT_EXPIRY as string, // Token expires after specified duration
-        issuer: "vendorvault-api",
-        audience: "vendorvault-client",
-      } as jwt.SignOptions
-    );
+    // Generate Access Token (short-lived, 15 minutes)
+    const accessToken = generateAccessToken(user.id, user.email, user.role);
+
+    // Generate Refresh Token (long-lived, 7 days)
+    const refreshToken = generateRefreshToken(user.id, user.email);
 
     // Remove password hash from response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...userWithoutPassword } = user;
 
-    return successResponse(
+    // Create response with access token in body
+    const response = NextResponse.json(
       {
-        user: userWithoutPassword,
-        token,
-        expiresIn: JWT_EXPIRY,
-        tokenType: "Bearer",
+        success: true,
+        message: "Login successful",
+        data: {
+          user: userWithoutPassword,
+          accessToken,
+          tokenType: "Bearer",
+          expiresIn: "15m",
+        },
       },
-      "Login successful"
+      { status: 200 }
     );
+
+    // Set refresh token as HTTP-only cookie (secure storage)
+    response.cookies.set(
+      "refreshToken",
+      refreshToken,
+      REFRESH_TOKEN_COOKIE_OPTIONS
+    );
+
+    return response;
   } catch (error) {
     console.error("Error during user authentication:", error);
 

@@ -1,0 +1,160 @@
+{
+  "info": {
+    "name": "VendorVault - JWT Authentication",
+    "description": "Complete JWT authentication flow with access/refresh tokens",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login (Get Tokens)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save access token to environment",
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+              "    console.log(\"Access Token saved:\", jsonData.data.accessToken.substring(0, 50) + \"...\");",
+              "    console.log(\"Token expires in:\", jsonData.data.expiresIn);",
+              "    ",
+              "    // Display user info",
+              "    console.log(\"Logged in as:\", jsonData.data.user.email);",
+              "    console.log(\"Role:\", jsonData.data.user.role);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@vendorvault.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Login with email and password. Returns access token (15m) in response body and sets refresh token (7d) as HTTP-only cookie."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Protected Request (With Token)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        },
+        "description": "Make authenticated request using access token. Should succeed if token is valid and not expired."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Refresh Access Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save new access token",
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+              "    console.log(\"New Access Token saved:\", jsonData.data.accessToken.substring(0, 50) + \"...\");",
+              "    console.log(\"Token expires in:\", jsonData.data.expiresIn);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/refresh",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "refresh"]
+        },
+        "description": "Refresh expired access token using refresh token from HTTP-only cookie. Returns new access token and rotates refresh token."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Logout (Clear Tokens)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Clear stored token",
+              "if (pm.response.code === 200) {",
+              "    pm.environment.unset(\"accessToken\");",
+              "    console.log(\"Access token cleared. Refresh token cookie invalidated.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/logout",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "logout"]
+        },
+        "description": "Logout user and clear refresh token cookie."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Test Expired Token (Unauthorized)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE2MDAwMDAwMDAsImV4cCI6MTYwMDAwMDkwMH0.test",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        },
+        "description": "Test with an expired/invalid token. Should return 401 Unauthorized."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
