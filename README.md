@@ -716,3 +716,529 @@ See [FILEUPLOAD_README.md](FILEUPLOAD_README.md) for complete implementation gui
 - Images: JPG, PNG, WEBP
 - Documents: PDF
 - Max Size: 5MB
+
+---
+
+## 🔐 Secure JWT & Session Management
+
+VendorVault implements industry-standard JWT authentication with access/refresh token architecture for secure, scalable session management.
+
+### 🎯 Authentication Flow Overview
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant Database
+    
+    Client->>Server: POST /api/auth/login (email, password)
+    Server->>Database: Verify credentials
+    Database-->>Server: User data
+    Server-->>Client: Access Token (15m) + Refresh Token (7d, HTTP-only cookie)
+    
+    Client->>Server: API Request with Access Token
+    Server-->>Client: 200 OK (if valid)
+    
+    Note over Client,Server: Access token expires after 15 minutes
+    
+    Client->>Server: API Request with expired Access Token
+    Server-->>Client: 401 Unauthorized
+    
+    Client->>Server: POST /api/auth/refresh (with cookie)
+    Server->>Database: Validate user still active
+    Database-->>Server: User is valid
+    Server-->>Client: New Access Token + New Refresh Token (rotation)
+    
+    Client->>Server: Retry API Request with new Access Token
+    Server-->>Client: 200 OK
+```
+
+### 🔑 JWT Token Structure
+
+VendorVault uses JSON Web Tokens (JWTs) with the following structure:
+
+#### Token Anatomy
+```
+header.payload.signature
+```
+
+**Example Decoded JWT:**
+```json
+{
+  "header": {
+    "alg": "HS256",
+    "typ": "JWT"
+  },
+  "payload": {
+    "id": 12345,
+    "email": "user@example.com",
+    "role": "VENDOR",
+    "type": "access",
+    "iat": 1735200000,
+    "exp": 1735200900,
+    "iss": "vendorvault-api",
+    "aud": "vendorvault-client"
+  },
+  "signature": "hashed-verification-string"
+}
+```
+
+**Token Components:**
+- **Header**: Algorithm (HS256) and token type (JWT)
+- **Payload**: User claims (ID, email, role, type) + metadata (issued at, expiration, issuer, audience)
+- **Signature**: HMAC-SHA256 signature ensuring integrity (prevents tampering)
+
+> ⚠️ **Security Note**: JWTs are encoded (Base64), not encrypted. Never store sensitive data like passwords or credit card numbers in the payload.
+
+### 🔄 Access vs Refresh Tokens
+
+| Feature | Access Token | Refresh Token |
+|---------|-------------|---------------|
+| **Purpose** | Authorize API requests | Obtain new access tokens |
+| **Lifespan** | 15 minutes | 7 days |
+| **Storage** | Memory (client-side) | HTTP-only cookie |
+| **Transmitted** | Authorization header | Automatic (cookie) |
+| **Contains** | User ID, email, role, "access" type | User ID, email, "refresh" type |
+| **Vulnerability** | XSS risk if stored in localStorage | CSRF protected via SameSite |
+
+#### Why Two Tokens?
+
+**Short-lived Access Tokens** minimize damage if stolen:
+- Even if intercepted, token becomes invalid in 15 minutes
+- Limits window of unauthorized access
+
+**Long-lived Refresh Tokens** reduce login friction:
+- Users stay authenticated for 7 days
+- Stored securely in HTTP-only cookies (not accessible to JavaScript)
+- Enables token rotation for enhanced security
+
+### 🛡️ Token Storage Security
+
+#### Access Token Storage
+```typescript
+// ✅ SECURE: Stored in memory (not localStorage)
+let accessToken: string | null = null;
+
+export function setAccessToken(token: string) {
+  accessToken = token;
+}
+
+export function getAccessToken(): string | null {
+  return accessToken;
+}
+```
+
+**Why Memory?**
+- ❌ **localStorage/sessionStorage**: Vulnerable to XSS attacks (accessible via JavaScript)
+- ✅ **Memory**: Lost on page refresh (requires re-auth via refresh token), but immune to XSS theft
+
+#### Refresh Token Storage
+```typescript
+// Server-side: Set HTTP-only cookie
+response.cookies.set("refreshToken", refreshToken, {
+  httpOnly: true,        // ✅ Not accessible via JavaScript (XSS protection)
+  secure: true,          // ✅ HTTPS only in production
+  sameSite: "strict",    // ✅ Prevents CSRF attacks
+  maxAge: 7 * 24 * 60 * 60, // 7 days
+  path: "/",
+});
+```
+
+**Cookie Attributes Explained:**
+- `httpOnly`: Blocks JavaScript access, preventing XSS token theft
+- `secure`: Cookies only sent over HTTPS (production)
+- `sameSite: 'strict'`: Browser blocks cookies on cross-origin requests (CSRF protection)
+
+### 🔄 Token Refresh Flow
+
+VendorVault implements **automatic token refresh** with rotation for maximum security.
+
+#### Client-Side Auto-Refresh
+```typescript
+// utils/token-manager.ts
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  let token = getAccessToken();
+  
+  // Add Authorization header
+  let response = await fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include", // Include refresh token cookie
+  });
+  
+  // If 401 Unauthorized, refresh and retry
+  if (response.status === 401) {
+    const newToken = await refreshAccessToken();
+    
+    if (newToken) {
+      // Retry with new token
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          Authorization: `Bearer ${newToken}`,
+        },
+        credentials: "include",
+      });
+    }
+  }
+  
+  return response;
+}
+```
+
+#### Refresh Endpoint
+```typescript
+// POST /api/auth/refresh
+1. Extract refresh token from HTTP-only cookie
+2. Verify token signature & expiration
+3. Check user still exists and is active
+4. Generate NEW access token (15m)
+5. Generate NEW refresh token (7d) - Token Rotation
+6. Set new refresh token cookie
+7. Return new access token
+```
+
+**Token Rotation**: Each refresh generates a new refresh token, invalidating the old one. This limits damage if a refresh token is stolen.
+
+### 🛡️ Security Protections
+
+#### 1. XSS (Cross-Site Scripting) Protection
+
+**Threat**: Malicious scripts injected into your app stealing tokens from localStorage.
+
+**Mitigations**:
+- ✅ Access tokens stored in memory (not localStorage)
+- ✅ Refresh tokens in HTTP-only cookies (JavaScript cannot access)
+- ✅ Input sanitization via `lib/security.ts`
+- ✅ Content Security Policy (CSP) headers
+- ✅ X-XSS-Protection headers
+
+```typescript
+// lib/security.ts - Input sanitization
+export function sanitizeInput(input: string): string {
+  // Remove HTML tags, script tags, event handlers, javascript: URLs
+  let sanitized = input.replace(/<[^>]*>/g, "");
+  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+  sanitized = sanitized.replace(/on\w+\s*=\s*["'][^"']*["']/gi, "");
+  sanitized = sanitized.replace(/javascript:/gi, "");
+  return sanitized.trim();
+}
+```
+
+#### 2. CSRF (Cross-Site Request Forgery) Protection
+
+**Threat**: Malicious site tricks browser into sending authenticated requests to your API.
+
+**Mitigations**:
+- ✅ SameSite=Strict cookies (browser blocks cross-origin cookie sending)
+- ✅ Origin/Referer header validation
+- ✅ Token rotation (stolen tokens quickly invalidated)
+
+```typescript
+// lib/security.ts - CSRF validation
+export function validateCSRF(request: NextRequest): boolean {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+    return true; // Safe methods don't need CSRF check
+  }
+
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+
+  if (origin) {
+    const originHost = new URL(origin).host;
+    if (originHost !== host) {
+      return false; // Reject cross-origin requests
+    }
+  }
+
+  return true;
+}
+```
+
+#### 3. Token Replay Attack Protection
+
+**Threat**: Stolen token reused for unauthorized access.
+
+**Mitigations**:
+- ✅ Short access token lifespan (15 minutes)
+- ✅ Refresh token rotation (one-time use)
+- ✅ Expiration validation on every request
+- ✅ Issuer/audience validation
+
+#### 4. Rate Limiting
+
+**Threat**: Brute force attacks on login/refresh endpoints.
+
+**Mitigation**:
+- ✅ IP-based rate limiting (100 requests/minute)
+- ✅ Applied via Next.js middleware
+
+```typescript
+// middleware.ts
+export function middleware(request: NextRequest) {
+  const clientIP = getClientIP(request);
+
+  // 100 requests per minute per IP
+  if (!checkRateLimit(clientIP, 100, 60000)) {
+    return NextResponse.json(
+      { success: false, message: "Too many requests" },
+      { status: 429 }
+    );
+  }
+  
+  // ... continue
+}
+```
+
+### 📡 API Endpoints
+
+#### 1. Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Password123!"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "name": "John Doe",
+      "role": "VENDOR"
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": "15m"
+  }
+}
+```
+
+**Sets Cookie:**
+```
+Set-Cookie: refreshToken=eyJhbGc...; HttpOnly; Secure; SameSite=Strict; Max-Age=604800; Path=/
+```
+
+#### 2. Refresh Token
+```http
+POST /api/auth/refresh
+Cookie: refreshToken=eyJhbGc...
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": "15m"
+  }
+}
+```
+
+**Updates Cookie** (new refresh token via rotation)
+
+#### 3. Logout
+```http
+POST /api/auth/logout
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Logout successful"
+}
+```
+
+**Clears Cookie:**
+```
+Set-Cookie: refreshToken=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/
+```
+
+### 🧪 Testing the Implementation
+
+#### Using Postman/Insomnia
+
+1. **Login Request**
+```http
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@vendorvault.com",
+  "password": "Password123!"
+}
+```
+
+2. **Copy Access Token** from response
+
+3. **Protected Request**
+```http
+GET http://localhost:3000/api/users
+Authorization: Bearer <paste-access-token-here>
+```
+
+4. **Wait 15+ minutes** for token to expire
+
+5. **Retry Protected Request** - Should get 401 Unauthorized
+
+6. **Refresh Token** (cookies automatically sent)
+```http
+POST http://localhost:3000/api/auth/refresh
+```
+
+7. **Use New Access Token** from refresh response
+
+#### Using Browser Console
+
+```javascript
+// Login
+const loginRes = await fetch('/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'admin@vendorvault.com',
+    password: 'Password123!'
+  }),
+  credentials: 'include'
+});
+const loginData = await loginRes.json();
+console.log('Access Token:', loginData.data.accessToken);
+
+// Make authenticated request
+const usersRes = await fetch('/api/users', {
+  headers: {
+    'Authorization': `Bearer ${loginData.data.accessToken}`
+  }
+});
+console.log('Users:', await usersRes.json());
+
+// Refresh token
+const refreshRes = await fetch('/api/auth/refresh', {
+  method: 'POST',
+  credentials: 'include'
+});
+const refreshData = await refreshRes.json();
+console.log('New Access Token:', refreshData.data.accessToken);
+```
+
+### 📊 Token Expiry Evidence
+
+**Access Token Expiry (15 minutes):**
+```bash
+# Decode JWT at jwt.io or use:
+npm install -g jwt-cli
+
+# Check expiry
+jwt decode eyJhbGc... | grep exp
+
+# Output shows expiration timestamp (15 min from issue)
+"exp": 1735201800
+```
+
+**Refresh Token Expiry (7 days):**
+```bash
+jwt decode <refresh-token> | grep exp
+
+# Output shows expiration timestamp (7 days from issue)
+"exp": 1735805400
+```
+
+### 🔄 Token Flow Diagram
+
+```
+┌──────────┐                          ┌──────────┐
+│  Client  │                          │  Server  │
+└────┬─────┘                          └────┬─────┘
+     │                                     │
+     │  POST /api/auth/login               │
+     │  (email, password)                  │
+     ├────────────────────────────────────>│
+     │                                     │ Verify credentials
+     │                                     │ Generate tokens
+     │                                     │
+     │  200 OK                             │
+     │  Access Token (15m)                 │
+     │  + Refresh Cookie (7d)              │
+     │<────────────────────────────────────┤
+     │                                     │
+     │  GET /api/users                     │
+     │  Authorization: Bearer <token>      │
+     ├────────────────────────────────────>│
+     │                                     │ Verify token
+     │  200 OK + data                      │
+     │<────────────────────────────────────┤
+     │                                     │
+     ⏱️  (15 minutes pass)                  │
+     │                                     │
+     │  GET /api/users                     │
+     │  Authorization: Bearer <old-token>  │
+     ├────────────────────────────────────>│
+     │                                     │ Token expired!
+     │  401 Unauthorized                   │
+     │<────────────────────────────────────┤
+     │                                     │
+     │  POST /api/auth/refresh             │
+     │  Cookie: refreshToken=...           │
+     ├────────────────────────────────────>│
+     │                                     │ Verify refresh token
+     │                                     │ Check user active
+     │                                     │ Generate new tokens
+     │  200 OK                             │
+     │  New Access Token (15m)             │
+     │  + New Refresh Cookie (7d)          │
+     │<────────────────────────────────────┤
+     │                                     │
+     │  GET /api/users (retry)             │
+     │  Authorization: Bearer <new-token>  │
+     ├────────────────────────────────────>│
+     │                                     │ Verify token
+     │  200 OK + data                      │
+     │<────────────────────────────────────┤
+```
+
+### 🎯 Key Takeaways
+
+✅ **Dual-Token Architecture**: Short-lived access tokens (15m) + long-lived refresh tokens (7d)  
+✅ **Secure Storage**: Access tokens in memory, refresh tokens in HTTP-only cookies  
+✅ **Automatic Refresh**: Client-side utilities handle token expiry transparently  
+✅ **Token Rotation**: New refresh token on every refresh (prevents replay attacks)  
+✅ **XSS Protection**: HTTP-only cookies + input sanitization + CSP headers  
+✅ **CSRF Protection**: SameSite cookies + Origin validation  
+✅ **Rate Limiting**: Prevents brute force attacks (100 req/min per IP)  
+✅ **Production Ready**: Environment-based configuration, proper error handling
+
+### 📚 Related Files
+
+**Authentication Logic:**
+- [`vendorvault/lib/auth.ts`](vendorvault/lib/auth.ts) - Token generation & verification
+- [`vendorvault/app/api/auth/login/route.ts`](vendorvault/app/api/auth/login/route.ts) - Login endpoint
+- [`vendorvault/app/api/auth/refresh/route.ts`](vendorvault/app/api/auth/refresh/route.ts) - Refresh endpoint
+- [`vendorvault/app/api/auth/logout/route.ts`](vendorvault/app/api/auth/logout/route.ts) - Logout endpoint
+
+**Security:**
+- [`vendorvault/lib/security.ts`](vendorvault/lib/security.ts) - XSS/CSRF protection utilities
+- [`vendorvault/middleware.ts`](vendorvault/middleware.ts) - Global security middleware
+
+**Client Utilities:**
+- [`vendorvault/utils/token-manager.ts`](vendorvault/utils/token-manager.ts) - Token management & auto-refresh
+
+**Configuration:**
+- [`vendorvault/.env`](vendorvault/.env) - JWT secrets & expiry times
+
+---
