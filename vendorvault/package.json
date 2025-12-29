@@ -14,7 +14,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "test:rbac": "tsx tests/rbac-test.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
