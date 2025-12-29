@@ -235,6 +235,54 @@ export const POST = withPermission(
 
 ## 🔒 Security Highlights
 
+## 🛡️ Input Sanitization & OWASP Compliance
+
+### Why These Measures Matter
+User input is a primary attack vector for XSS (Cross-Site Scripting) and SQL Injection (SQLi). Following [OWASP](https://owasp.org/) best practices, all user-provided data is sanitized, validated, and encoded before being processed or rendered. This prevents attackers from injecting malicious scripts or SQL commands that could compromise the application or its data.
+
+### Sanitization Utilities & Encoder Choices
+- **sanitize-html**: Used in `utils/sanitize.ts` to strip all HTML tags and attributes from user input, preventing XSS payloads.
+- **sanitizeInput**: Utility function that sanitizes a single string.
+- **sanitizeObject**: Recursively sanitizes all string properties in objects/arrays, ensuring deeply nested data is safe.
+- **React auto-escaping**: All output in the UI is auto-escaped by React, preventing script injection by default.
+
+### Before/After Examples (XSS/SQLi Prevention)
+```js
+// Input containing XSS and SQLi payloads
+const maliciousInput = `<script>alert('XSS')</script>\nRobert'); DROP TABLE users;--`;
+const cleanInput = sanitizeInput(maliciousInput);
+// Output:
+// Before: <script>alert('XSS')</script>\nRobert'); DROP TABLE users;--
+// After: alert('XSS')\nRobert'); DROP TABLE users;--
+```
+
+### SQL Injection Prevention
+- All database queries use parameterized methods (e.g., Prisma ORM), never string concatenation.
+- Example (safe):
+  ```ts
+  const user = await prisma.user.findFirst({ where: { email: emailInput } });
+  ```
+- Example (unsafe, never used):
+  ```ts
+  // const result = await db.query(`SELECT * FROM users WHERE name = '${req.body.name}'`);
+  ```
+
+### Secure Validation & Output Encoding in API and UI
+- All API endpoints sanitize and validate user input before processing (see `app/api/email/route.ts`).
+- React UI never renders unsanitized or unescaped user data.
+- Never use `dangerouslySetInnerHTML` unless absolutely necessary, and always sanitize first.
+
+### Reflections & Ongoing Security Reviews
+- **Why these measures matter:** They protect users and data from common, high-impact attacks and are required for any production-grade web application.
+- **Ongoing reviews:** Security is reviewed regularly as part of code reviews and dependency updates.
+- **Future improvements:**
+  - Enforce Content Security Policy (CSP) headers for even stronger XSS protection
+  - Use stricter validation schemas (e.g., Zod, Yup) for all API inputs
+  - Add secure HTTP headers (e.g., HSTS, X-Frame-Options)
+  - Integrate automated security testing in CI/CD
+
+---
+
 - **Multi-Layer Defense**: Checks at middleware, API, business logic, and UI levels
 - **Server-Side Enforcement**: All access control on backend (never trust client)
 - **Comprehensive Auditing**: Every decision logged for compliance
