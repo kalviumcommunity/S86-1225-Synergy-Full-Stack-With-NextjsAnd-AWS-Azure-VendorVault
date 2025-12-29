@@ -1,241 +1,64 @@
-# ✅ RBAC Implementation Complete
 
-## 🎉 Summary
+# 🌐 HTTPS Enforcement, Secure Headers & Input Sanitization
 
-**Role-Based Access Control (RBAC)** has been successfully implemented in the VendorVault project. All requirements from the Kalvium assignment have been fulfilled and documented.
+## What Are Security Headers?
+Security headers are HTTP response headers that instruct browsers to enforce security policies, reducing the risk of attacks like man-in-the-middle (MITM), XSS, and unauthorized data access.
 
----
-
-## 📦 What Was Implemented
-
-### 1. **Core RBAC System**
-✅ **Role Hierarchy** with 3 levels:
-- ADMIN (Level 3) - Full system access
-- INSPECTOR (Level 2) - License approval & inspections
-- VENDOR (Level 1) - Own resources only
-
-✅ **26 Granular Permissions** across 5 categories:
-- User Management (4 permissions)
-- Vendor Management (5 permissions)
-- License Management (6 permissions)
-- Inspection Management (4 permissions)
-- Document Management (3 permissions)
-- System Operations (3 permissions)
-
-✅ **Resource Ownership Controls**:
-- Admins/Inspectors can access ANY resource
-- Vendors can only access OWN resources
-
-### 2. **Backend/API Implementation**
-✅ Created utility functions in `lib/rbac.ts`:
-- `requireRole()` - Enforce role requirements
-- `requirePermission()` - Enforce permission requirements
-- `withRBAC()` - Higher-order function for role-based routes
-- `withPermission()` - Higher-order function for permission-based routes
-- `checkPermission()` - Non-blocking permission checks
-
-✅ Protected API endpoints with RBAC:
-- `/api/admin/audit-logs` - Admin only
-- `/api/rbac-examples` - Multiple RBAC patterns demonstrated
-
-✅ Example implementations showing various patterns
-
-### 3. **Audit Logging System**
-✅ Comprehensive logging in `lib/audit-logger.ts`:
-- Every access decision logged (ALLOWED/DENIED)
-- Tracks: user, role, action, resource, timestamp, IP
-- Real-time statistics and analytics
-- Suspicious activity detection
-- Log export functionality
-
-✅ Admin dashboard showing:
-- Total access events
-- Allowed vs. denied statistics
-- Breakdown by role
-- Recent denials
-- Suspicious users
-
-### 4. **Frontend/UI Components**
-✅ React hooks in `hooks/useRBAC.ts`:
-- `usePermission()` - Check permissions
-- `useRole()` - Check roles
-- `useIsAdmin()`, `useIsInspector()`, `useIsVendor()`
-
-✅ React components in `components/RBACComponents.tsx`:
-- `<RequireRole>` - Conditional rendering by role
-- `<RequirePermission>` - Conditional rendering by permission
-- `<AdminOnly>`, `<InspectorOnly>`, `<VendorOnly>`
-- `<RoleSwitch>` - Dynamic content by role
-- `<UnauthorizedMessage>` - Access denied UI
-
-✅ Interactive demo page at `/rbac-demo`:
-- Live demonstration of all RBAC features
-- Role-based section visibility
-- Permission-based button rendering
-- Real-time audit log viewing
-- Access statistics
-
-### 5. **Testing & Documentation**
-✅ Automated test suite (`tests/rbac-test.ts`):
-- 100% pass rate (all 14 test cases passed)
-- Permission checks tested
-- Resource ownership tested
-- Role hierarchy tested
-- Permission summary by role
-
-✅ Comprehensive documentation (3 documents):
-- **RBAC_DOCUMENTATION.md** (26 pages) - Complete guide
-- **RBAC_TEST_RESULTS.md** - Evidence and test results
-- **RBAC_QUICKSTART.md** - Quick start guide for developers
+| Header | Purpose | Example Attack Prevented |
+|--------|---------|-------------------------|
+| HSTS (Strict-Transport-Security) | Forces browsers to always use HTTPS | MITM |
+| CSP (Content-Security-Policy) | Restricts allowed sources for scripts, styles, and content | XSS |
+| CORS (Access-Control-Allow-Origin) | Controls which domains can access your API | Unauthorized API access |
 
 ---
 
-## 📊 Test Results
+## HSTS: Enforce HTTPS
+HSTS ensures browsers always use HTTPS for your domain, protecting users from protocol downgrade attacks.
 
-### All Tests Passed ✅
-
+**Configuration (next.config.ts):**
+```js
+headers: [
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
+  },
+]
 ```
-Test 1: Permission Checks        5/5 PASS ✅
-Test 2: Resource Ownership       4/4 PASS ✅
-Test 3: Role Hierarchy          5/5 PASS ✅
-Test 4: Permission Summary       3/3 PASS ✅
-
-Total: 100% Success Rate
-```
-
-### Sample Audit Logs
-
-**Successful Access:**
-```
-✅ [RBAC] User: 1 | Role: ADMIN | Action: read:user | Resource: /api/admin | Decision: ALLOWED
-```
-
-**Denied Access:**
-```
-❌ [RBAC] User: 5 | Role: VENDOR | Action: delete:user | Resource: /api/users | Decision: DENIED | Reason: Role VENDOR lacks permission delete:user
-```
+*max-age=63072000* (2 years), *includeSubDomains*, and *preload* for browser preload lists.
 
 ---
 
-## 🚀 How to Use
+## CSP: Content Security Policy
+CSP restricts which sources can be used for scripts, styles, images, etc., helping prevent XSS.
 
-### Run Tests
-```bash
-npm run test:rbac
+**Configuration (next.config.ts):**
+```js
+headers: [
+  {
+    key: 'Content-Security-Policy',
+    value: "default-src 'self'; script-src 'self' https://apis.google.com; img-src 'self' data:; style-src 'self' 'unsafe-inline';",
+  },
+]
 ```
+*Only trusted domains are allowed. Avoid 'unsafe-inline' unless necessary. Test thoroughly to avoid breaking third-party integrations.*
 
-### View Demo
-1. Start the dev server: `npm run dev`
-2. Navigate to: `http://localhost:3000/rbac-demo`
-3. Login with different roles to see role-based UI
+---
 
-### Protect API Routes
-```typescript
-// Option 1: Role-based
-export const GET = withRBAC([Role.ADMIN], async (request, { user }) => {
-  return successResponse({ data: 'admin data' });
-});
+## CORS: Cross-Origin Resource Sharing
+CORS controls which domains can access your API endpoints.
 
-// Option 2: Permission-based
-export const POST = withPermission(
-  Permission.CREATE_USER,
-  async (request, { user }) => {
-    return successResponse({ message: 'User created' });
-  }
-);
+**Example (API route):**
+```ts
+// Only allow requests from your frontend domain
+res.setHeader('Access-Control-Allow-Origin', 'https://your-frontend-domain.com');
+res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 ```
-
-### Use in React Components
-```typescript
-// Conditional rendering
-<RequireRole roles={[Role.ADMIN]}>
-  <AdminPanel />
-</RequireRole>
-
-<RequirePermission permission={Permission.DELETE_USER}>
-  <button>Delete User</button>
-</RequirePermission>
-```
+*Never use '*' in production. Always specify trusted origins.*
 
 ---
 
-## 📁 Files Created
-
-### Configuration
-- ✅ `config/roles.ts` - Role and permission definitions
-
-### Backend
-- ✅ `lib/rbac.ts` - RBAC utilities and middleware
-- ✅ `lib/audit-logger.ts` - Audit logging system
-- ✅ `app/api/admin/audit-logs/route.ts` - Audit logs API
-- ✅ `app/api/rbac-examples/route.ts` - Example implementations
-
-### Frontend
-- ✅ `hooks/useRBAC.ts` - React hooks
-- ✅ `components/RBACComponents.tsx` - React components
-- ✅ `app/rbac-demo/page.tsx` - Interactive demo page
-
-### Testing & Documentation
-- ✅ `tests/rbac-test.ts` - Automated tests
-- ✅ `RBAC_DOCUMENTATION.md` - Complete documentation
-- ✅ `RBAC_TEST_RESULTS.md` - Test results and evidence
-- ✅ `RBAC_QUICKSTART.md` - Quick start guide
-
----
-
-## 🎯 Assignment Requirements Met
-
-### ✅ 1. Understand the Core Idea of RBAC
-- [x] Defined 3 clear roles with distinct permissions
-- [x] Implemented role hierarchy (ADMIN > INSPECTOR > VENDOR)
-- [x] Clear boundaries and minimal role overlap
-
-### ✅ 2. Define Roles and Permissions
-- [x] Created comprehensive permission mapping in `config/roles.ts`
-- [x] Roles stored in JWT payload
-- [x] 26 granular permissions across 5 categories
-
-### ✅ 3. Apply Role Checks in API Routes
-- [x] Protected sensitive endpoints with `withRBAC()` and `withPermission()`
-- [x] Middleware verifies JWT and attaches user data
-- [x] All checks enforced on backend (not just frontend)
-
-### ✅ 4. Control Access in the UI
-- [x] Conditional rendering based on roles and permissions
-- [x] React components for role-based layouts
-- [x] Permission-based button visibility
-
-### ✅ 5. Audit and Logging
-- [x] Every allow/deny decision logged
-- [x] Logs include: user, role, action, resource, decision, reason
-- [x] Real-time statistics and suspicious activity detection
-- [x] Admin dashboard for viewing logs
-
-### ✅ 6. Document in README
-- [x] Roles & permissions table (completed ✅)
-- [x] Policy evaluation logic examples (completed ✅)
-- [x] Allow/Deny test results as evidence (completed ✅)
-- [x] Reflection on scalability and auditing (completed ✅)
-- [x] Discussion of adaptation for complex systems (completed ✅)
-
----
-
-## 💡 Key Achievements
-
-1. ✅ **Production-Ready Implementation** - Battle-tested patterns and best practices
-2. ✅ **100% Test Coverage** - All test cases passing
-3. ✅ **Comprehensive Logging** - Every access decision tracked
-4. ✅ **Developer-Friendly APIs** - Clean, intuitive function names
-5. ✅ **Extensive Documentation** - 26 pages of guides and examples
-6. ✅ **Interactive Demo** - Live demonstration at `/rbac-demo`
-7. ✅ **Type-Safe** - Full TypeScript support with no errors
-8. ✅ **Scalable Architecture** - Easy to add new roles/permissions
-
----
-
-## 🔒 Security Highlights
-
-## 🛡️ Input Sanitization & OWASP Compliance
+## Input Sanitization & OWASP Compliance
 
 ### Why These Measures Matter
 User input is a primary attack vector for XSS (Cross-Site Scripting) and SQL Injection (SQLi). Following [OWASP](https://owasp.org/) best practices, all user-provided data is sanitized, validated, and encoded before being processed or rendered. This prevents attackers from injecting malicious scripts or SQL commands that could compromise the application or its data.
@@ -272,8 +95,19 @@ const cleanInput = sanitizeInput(maliciousInput);
 - React UI never renders unsanitized or unescaped user data.
 - Never use `dangerouslySetInnerHTML` unless absolutely necessary, and always sanitize first.
 
-### Reflections & Ongoing Security Reviews
-- **Why these measures matter:** They protect users and data from common, high-impact attacks and are required for any production-grade web application.
+---
+
+## Verification & Testing
+- Use Chrome DevTools (Network tab) to inspect response headers for HSTS, CSP, and CORS.
+- Online tools: [securityheaders.com](https://securityheaders.com/) or [observatory.mozilla.org](https://observatory.mozilla.org/)
+- Record screenshots of header inspection or scan results for documentation.
+
+---
+
+## Reflection
+- **Importance of HTTPS:** Enforcing HTTPS with HSTS protects users from MITM attacks and ensures all data is encrypted in transit.
+- **CSP & CORS Impact:** Strict CSP and CORS policies may require updates for third-party integrations (analytics, fonts, APIs). Always test thoroughly after changes.
+- **Balancing Security & Flexibility:** The configuration aims for strong security by default, but can be adjusted for trusted third-party services as needed.
 - **Ongoing reviews:** Security is reviewed regularly as part of code reviews and dependency updates.
 - **Future improvements:**
   - Enforce Content Security Policy (CSP) headers for even stronger XSS protection
