@@ -53,8 +53,11 @@ export default function Home() {
         </div>
 
         {/* Quick Actions */}
-        {isAuthenticated ? (
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-8 mb-12 text-white text-center shadow-xl">
+        {isAuthenticated && (
+          <div
+            className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-8 mb-12 text-white text-center shadow-xl"
+            suppressHydrationWarning
+          >
             <h2 className="text-2xl font-bold mb-2">
               Welcome back, {user?.username}! 👋
             </h2>
@@ -75,7 +78,7 @@ export default function Home() {
               Go to Dashboard →
             </Link>
           </div>
-        ) : null}
+        )}
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">

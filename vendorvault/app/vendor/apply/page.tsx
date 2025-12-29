@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/hooks/useUI";
@@ -11,6 +11,7 @@ export default function VendorApply() {
   const { user, isAuthenticated } = useAuth();
   const { showSuccess, showError, isDarkMode, startLoading, stopLoading } =
     useUI();
+  const [mounted, setMounted] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -281,6 +282,14 @@ export default function VendorApply() {
     }
   };
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -306,6 +315,7 @@ export default function VendorApply() {
   return (
     <div
       className={`min-h-screen py-8 px-4 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}
+      suppressHydrationWarning
     >
       <div className="max-w-5xl mx-auto">
         {/* Header */}
@@ -317,6 +327,7 @@ export default function VendorApply() {
           </h1>
           <p
             className={`text-lg ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+            suppressHydrationWarning
           >
             Complete all steps to submit your application for review
           </p>
@@ -325,6 +336,7 @@ export default function VendorApply() {
         {/* Progress Steps */}
         <div
           className={`mb-8 p-6 rounded-xl ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow-lg`}
+          suppressHydrationWarning
         >
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (

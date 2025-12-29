@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +22,7 @@ export default function VendorDashboard() {
   const router = useRouter();
   const { user, isAuthenticated, isVendor } = useAuth();
   const { isDarkMode, showError } = useUI();
+  const [mounted, setMounted] = useState(false);
 
   // SWR for vendor data
   const {
@@ -62,18 +63,27 @@ export default function VendorDashboard() {
   const licenses = licensesResponse?.success ? licensesResponse.data : [];
   const loading = vendorLoading || (vendor && licensesLoading);
 
+  useLayoutEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/auth/login");
       return;
     }
 
-    if (!isVendor()) {
+    if (!isVendor) {
       showError("Access denied. Vendor role required.");
       router.push("/dashboard");
       return;
     }
-  }, [isAuthenticated, user, isVendor, router, showError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user, isVendor]);
+
+  if (!mounted) {
+    return null;
+  }
 
   const hasApplied = vendor !== null;
 

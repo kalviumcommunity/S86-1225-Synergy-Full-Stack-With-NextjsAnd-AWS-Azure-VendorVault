@@ -2,6 +2,7 @@ import Redis from "ioredis";
 
 // Create Redis connection
 const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+  password: process.env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
   lazyConnect: false,

@@ -43,13 +43,14 @@ export default function AdminDashboard() {
     }
 
     fetchDashboardStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user]);
 
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
 
-      const [vendorsRes, licensesRes, usersRes] = await Promise.all([
+      const [vendorsRes, licensesRes] = await Promise.all([
         fetch("/api/vendors", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("vendorvault_token")}`,
@@ -60,18 +61,12 @@ export default function AdminDashboard() {
             Authorization: `Bearer ${localStorage.getItem("vendorvault_token")}`,
           },
         }),
-        fetch("/api/users", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("vendorvault_token")}`,
-          },
-        }),
       ]);
 
-      if (!vendorsRes.ok || !licensesRes.ok || !usersRes.ok) {
+      if (!vendorsRes.ok || !licensesRes.ok) {
         const errors = [];
         if (!vendorsRes.ok) errors.push(`Vendors (${vendorsRes.status})`);
         if (!licensesRes.ok) errors.push(`Licenses (${licensesRes.status})`);
-        if (!usersRes.ok) errors.push(`Users (${usersRes.status})`);
         console.error("Failed to fetch:", errors.join(", "));
         showError("Failed to load dashboard data. Please try again.");
         return;
@@ -79,9 +74,8 @@ export default function AdminDashboard() {
 
       const vendors = await vendorsRes.json();
       const licenses = await licensesRes.json();
-      const users = await usersRes.json();
 
-      if (vendors.success && licenses.success && users.success) {
+      if (vendors.success && licenses.success) {
         const licenseData = licenses.data || [];
         setStats({
           totalApplications: vendors.data?.length || 0,
@@ -95,9 +89,7 @@ export default function AdminDashboard() {
             (l: { status: string }) => l.status === "REJECTED"
           ).length,
           totalVendors: vendors.data?.length || 0,
-          activeInspectors:
-            users.data?.filter((u: { role: string }) => u.role === "INSPECTOR")
-              .length || 0,
+          activeInspectors: 0, // TODO: Need endpoint to fetch all users
         });
       }
     } catch (error) {
@@ -275,16 +267,16 @@ export default function AdminDashboard() {
               📋 Review Applications
             </Button>
             <Button
-              onClick={() => router.push("/admin/applications?filter=pending")}
+              onClick={() => router.push("/admin/applications?status=pending")}
               className="bg-yellow-600 hover:bg-yellow-700 py-6 text-lg"
             >
               ⏳ Pending Reviews ({stats.pendingApplications})
             </Button>
             <Button
-              onClick={() => router.push("/vendors")}
+              onClick={() => router.push("/admin/manage")}
               className="bg-purple-600 hover:bg-purple-700 py-6 text-lg"
             >
-              🏪 Manage Vendors
+              👥 Manage Users
             </Button>
           </div>
         </Card>
