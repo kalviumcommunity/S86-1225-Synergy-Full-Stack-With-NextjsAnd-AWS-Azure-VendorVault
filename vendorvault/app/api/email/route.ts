@@ -6,6 +6,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { sendEmail, EmailPayload } from "@/services/email.service";
 
+import { sanitizeInput } from "@/utils/sanitize";
+
 export async function POST(req: NextRequest) {
   try {
     // Validate request method
@@ -20,7 +22,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Validate required fields
-    const { to, subject, html } = body;
+    // Sanitize all user-provided fields
+    const to = sanitizeInput(body.to);
+    const subject = sanitizeInput(body.subject);
+    const html = sanitizeInput(body.html); // If you want to allow some HTML, adjust allowedTags in sanitize.ts
 
     if (!to || !subject || !html) {
       return NextResponse.json(
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
       to,
       subject,
       html,
-      from: body.from || process.env.SENDGRID_SENDER,
+      from: sanitizeInput(body.from || process.env.SENDGRID_SENDER || ""),
     };
 
     // Send email
