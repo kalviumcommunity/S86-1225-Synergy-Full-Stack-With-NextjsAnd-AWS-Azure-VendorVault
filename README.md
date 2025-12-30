@@ -1,4 +1,4 @@
-# VendorVault
+﻿# VendorVault
 
 Railway Vendor License Management System - A comprehensive, production-ready platform for managing vendor licenses and applications with optimized database transactions, query performance, and data integrity.
 
@@ -8,6 +8,7 @@ Railway Vendor License Management System - A comprehensive, production-ready pla
 - **Data Integrity:** Automatic validation and constraint enforcement
 - **Secure File Upload:** AWS S3 & Azure Blob presigned URLs for direct, scalable uploads
 - **Object Storage:** Configured for both AWS S3 and Azure Blob Storage with validation
+- **Secret Management:** AWS Secrets Manager & Azure Key Vault integration for secure credentials
 - **Responsive Design:** Mobile-first design with adaptive breakpoints
 - **Theme Support:** Complete light/dark mode with accessibility compliance
 - **Cloud Database:** Fully configured for AWS RDS and Azure PostgreSQL
@@ -20,6 +21,7 @@ Railway Vendor License Management System - A comprehensive, production-ready pla
 - [Tech Stack](#-tech-stack)
 - [Cloud Infrastructure](#-cloud-infrastructure)
 - [Object Storage Configuration](#-object-storage-configuration)
+- [Environment Setup & Secret Management](#-environment-setup--secret-management)
 - [Getting Started](#-getting-started)
 - [Database Configuration](#-database-configuration)
 - [Testing](#-testing)
@@ -605,6 +607,605 @@ aws s3api put-bucket-metrics-configuration \
 
 ---
 
+## ðŸ” Environment Setup & Secret Management
+
+### Overview
+
+VendorVault uses cloud-native secret management services to securely store and retrieve sensitive credentials (API keys, database URLs, JWT secrets) instead of plain-text `.env` files in production.
+
+**Why Secret Management Matters:**
+- ðŸ”’ **Encrypted at Rest & In Transit**: Secrets are encrypted using cloud provider's KMS
+- ðŸŽ¯ **Fine-Grained Access Control**: IAM/RBAC policies control who can access secrets
+- ðŸ”„ **Automatic Rotation**: Supports automatic credential rotation
+- ðŸ“ **Audit Logging**: All secret access is logged for compliance
+- ðŸš« **No Git Leaks**: Secrets never stored in version control
+
+### Supported Providers
+
+| Provider | Service | Implementation | Status |
+|----------|---------|----------------|--------|
+| **AWS** | Secrets Manager | JSON secret bundles | âœ… Configured |
+| **Azure** | Key Vault | Individual key-value secrets | âœ… Configured |
+| **Local** | `.env` files | Development fallback | âœ… Configured |
+
+---
+
+### AWS Secrets Manager Setup
+
+#### Step 1: Create Secret
+
+**Via AWS Console:**
+1. Go to AWS Console â†’ Secrets Manager â†’ Store a new secret
+2. Select **"Other type of secret"**
+3. Add key-value pairs:
+   ```json
+   {
+     "DATABASE_URL": "postgresql://admin:password@rds.amazonaws.com:5432/vendorvault",
+     "JWT_SECRET": "your-super-secret-jwt-key",
+     "REDIS_PASSWORD": "your-redis-password",
+     "NEXTAUTH_SECRET": "your-nextauth-secret"
+   }
+   ```
+4. Secret name: `vendorvault/app-secrets`
+5. Encryption: Use default AWS KMS key
+6. Click **Store**
+7. Copy the **Secret ARN**
+
+**Via AWS CLI:**
+```bash
+aws secretsmanager create-secret \
+  --name vendorvault/app-secrets \
+  --description "VendorVault application secrets" \
+  --secret-string '{
+    "DATABASE_URL": "postgresql://admin:password@rds.amazonaws.com:5432/vendorvault",
+    "JWT_SECRET": "your-jwt-secret",
+    "REDIS_PASSWORD": "your-redis-password"
+  }' \
+  --region us-east-1
+```
+
+#### Step 2: Create IAM Policy
+
+Create a policy with **least-privilege** access:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": "arn:aws:secretsmanager:us-east-1:123456789012:secret:vendorvault/app-secrets-*"
+    }
+  ]
+}
+```
+
+Save as `vendorvault-secrets-policy.json` and create:
+
+```bash
+aws iam create-policy \
+  --policy-name VendorVaultSecretsRead \
+  --policy-document file://vendorvault-secrets-policy.json
+```
+
+#### Step 3: Attach to IAM Role or User
+
+**For EC2/ECS (IAM Role - Recommended):**
+```bash
+aws iam attach-role-policy \
+  --role-name VendorVaultAppRole \
+  --policy-arn arn:aws:iam::123456789012:policy/VendorVaultSecretsRead
+```
+
+**For Local Development (IAM User):**
+```bash
+aws iam attach-user-policy \
+  --user-name vendorvault-dev \
+  --policy-arn arn:aws:iam::123456789012:policy/VendorVaultSecretsRead
+```
+
+#### Step 4: Configure Application
+
+Add to `.env`:
+```env
+# AWS Secrets Manager Configuration
+AWS_REGION="us-east-1"
+SECRET_ARN="arn:aws:secretsmanager:us-east-1:123456789012:secret:vendorvault/app-secrets-abc123"
+# OR
+SECRET_NAME="vendorvault/app-secrets"
+
+# For local dev with IAM user (if not using IAM role):
+AWS_ACCESS_KEY_ID="your-access-key-id"
+AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+```
+
+#### Step 5: Load Secrets at Runtime
+
+```typescript
+// In your Next.js app startup or API route
+import { loadSecretsToEnv } from '@/lib/secrets-manager';
+
+// Load secrets before app starts
+await loadSecretsToEnv();
+
+// Now process.env has all secrets from Secrets Manager
+console.log('Database URL:', process.env.DATABASE_URL);
+```
+
+---
+
+### Azure Key Vault Setup
+
+#### Step 1: Create Key Vault
+
+**Via Azure Portal:**
+1. Azure Portal â†’ Create Resource â†’ Key Vault
+2. Subscription: Your subscription
+3. Resource Group: `vendorvault-rg`
+4. Key vault name: `vendorvault-keyvault` (globally unique)
+5. Region: Same as your app
+6. Pricing tier: Standard
+7. Access configuration: **Azure role-based access control (RBAC)**
+8. Click **Review + Create**
+
+**Via Azure CLI:**
+```bash
+az keyvault create \
+  --name vendorvault-keyvault \
+  --resource-group vendorvault-rg \
+  --location eastus \
+  --enable-rbac-authorization true
+```
+
+#### Step 2: Add Secrets
+
+```bash
+# Add each secret individually
+az keyvault secret set \
+  --vault-name vendorvault-keyvault \
+  --name DATABASE-URL \
+  --value "postgresql://admin:password@azure.com:5432/vendorvault"
+
+az keyvault secret set \
+  --vault-name vendorvault-keyvault \
+  --name JWT-SECRET \
+  --value "your-jwt-secret"
+
+az keyvault secret set \
+  --vault-name vendorvault-keyvault \
+  --name REDIS-PASSWORD \
+  --value "your-redis-password"
+```
+
+**Note:** Azure Key Vault secret names use hyphens instead of underscores.
+
+#### Step 3: Grant Access
+
+**For Managed Identity (Recommended for Azure App Service):**
+```bash
+# Enable managed identity on your App Service
+az webapp identity assign \
+  --name vendorvault-app \
+  --resource-group vendorvault-rg
+
+# Grant Key Vault Secrets User role
+az role assignment create \
+  --role "Key Vault Secrets User" \
+  --assignee <managed-identity-principal-id> \
+  --scope /subscriptions/<sub-id>/resourceGroups/vendorvault-rg/providers/Microsoft.KeyVault/vaults/vendorvault-keyvault
+```
+
+**For Service Principal (Local Development):**
+```bash
+# Create service principal
+az ad sp create-for-rbac \
+  --name vendorvault-sp \
+  --role "Key Vault Secrets User" \
+  --scopes /subscriptions/<sub-id>/resourceGroups/vendorvault-rg/providers/Microsoft.KeyVault/vaults/vendorvault-keyvault
+```
+
+Save the output (client ID, client secret, tenant ID).
+
+#### Step 4: Configure Application
+
+Add to `.env`:
+```env
+# Azure Key Vault Configuration
+KEYVAULT_NAME="vendorvault-keyvault"
+# OR
+AZURE_KEYVAULT_NAME="vendorvault-keyvault"
+
+# For local dev with Service Principal:
+AZURE_CLIENT_ID="your-client-id"
+AZURE_CLIENT_SECRET="your-client-secret"
+AZURE_TENANT_ID="your-tenant-id"
+```
+
+#### Step 5: Load Secrets at Runtime
+
+```typescript
+import { loadSecretsToEnv } from '@/lib/keyvault';
+
+// Map secret names to environment variables
+const secretMapping = {
+  'DATABASE-URL': 'DATABASE_URL',
+  'JWT-SECRET': 'JWT_SECRET',
+  'REDIS-PASSWORD': 'REDIS_PASSWORD',
+};
+
+await loadSecretsToEnv(secretMapping);
+
+console.log('Secrets loaded from Azure Key Vault');
+```
+
+---
+
+### Usage in Application
+
+#### Option 1: Load at Application Startup
+
+```typescript
+// app/layout.tsx or server startup
+import { loadSecretsToEnv as loadAWSSecrets } from '@/lib/secrets-manager';
+import { loadSecretsToEnv as loadAzureSecrets } from '@/lib/keyvault';
+
+async function initializeSecrets() {
+  // Try AWS Secrets Manager first
+  if (process.env.SECRET_ARN || process.env.SECRET_NAME) {
+    await loadAWSSecrets();
+  }
+  // Try Azure Key Vault
+  else if (process.env.KEYVAULT_NAME) {
+    await loadAzureSecrets({
+      'DATABASE-URL': 'DATABASE_URL',
+      'JWT-SECRET': 'JWT_SECRET',
+    });
+  }
+}
+
+// Call before app starts
+initializeSecrets();
+```
+
+#### Option 2: Retrieve Secrets On-Demand
+
+```typescript
+// In API routes
+import { getSecret } from '@/lib/secrets-manager';
+// OR
+import { getSecret } from '@/lib/keyvault';
+
+export async function POST(req: Request) {
+  const jwtSecret = await getSecret('JWT_SECRET');
+  // Use the secret...
+}
+```
+
+---
+
+### Testing Secret Retrieval
+
+#### Test API Endpoint
+
+```bash
+# Set test token in .env
+SECRETS_TEST_TOKEN="my-secure-test-token"
+
+# Test secret retrieval
+curl -H "Authorization: Bearer my-secure-test-token" \
+  http://localhost:3000/api/secrets/test
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Secret retrieval tested successfully",
+  "results": [
+    {
+      "provider": "AWS Secrets Manager",
+      "configured": true,
+      "secretsRetrieved": 4,
+      "secretKeys": ["DATABASE_URL", "JWT_SECRET", "REDIS_PASSWORD", "NEXTAUTH_SECRET"]
+    }
+  ],
+  "warning": "This endpoint exposes secret keys. Disable in production..."
+}
+```
+
+**âš ï¸ SECURITY WARNING:** Disable or protect `/api/secrets/test` in production!
+
+---
+
+### Secret Rotation Strategy
+
+#### AWS Secrets Manager Automatic Rotation
+
+1. **Enable Rotation:**
+```bash
+aws secretsmanager rotate-secret \
+  --secret-id vendorvault/app-secrets \
+  --rotation-lambda-arn arn:aws:lambda:us-east-1:123456789012:function:SecretsManagerRotation \
+  --rotation-rules AutomaticallyAfterDays=30
+```
+
+2. **Rotation Lambda Example:**
+```python
+import boto3
+import json
+
+def lambda_handler(event, context):
+    # Generate new credentials
+    new_password = generate_secure_password()
+    
+    # Update database password
+    update_database_password(new_password)
+    
+    # Update secret
+    client = boto3.client('secretsmanager')
+    client.put_secret_value(
+        SecretId=event['SecretId'],
+        SecretString=json.dumps({
+            'DATABASE_URL': f'postgresql://admin:{new_password}@...'
+        })
+    )
+```
+
+#### Azure Key Vault Rotation
+
+```bash
+# Set expiration date for secrets
+az keyvault secret set \
+  --vault-name vendorvault-keyvault \
+  --name DATABASE-URL \
+  --value "new-password" \
+  --expires "2026-06-30T00:00:00Z"
+
+# Enable alerts for expiring secrets
+az monitor metrics alert create \
+  --name secret-expiry-alert \
+  --resource-group vendorvault-rg \
+  --scopes /subscriptions/<sub-id>/resourceGroups/vendorvault-rg/providers/Microsoft.KeyVault/vaults/vendorvault-keyvault \
+  --condition "avg DaysUntilExpiry < 7" \
+  --window-size 1h
+```
+
+#### Manual Rotation Schedule
+
+| Secret Type | Rotation Frequency | Method |
+|-------------|-------------------|--------|
+| **Database Passwords** | 90 days | Automated via Lambda/Function |
+| **JWT Secrets** | 180 days | Manual update |
+| **API Keys (3rd party)** | Per provider policy | Manual update |
+| **Service Principal Secrets** | 90 days | Rotate via Azure CLI |
+
+---
+
+### Security Best Practices
+
+#### âœ… DO's
+
+1. **Use IAM Roles/Managed Identity**
+   - Prefer IAM roles over access keys in AWS
+   - Use Managed Identity for Azure services
+   - Eliminates credential management
+
+2. **Implement Least Privilege**
+   - Grant only `GetSecretValue` permission
+   - Restrict to specific secret ARNs/names
+   - Use resource-based policies
+
+3. **Enable Audit Logging**
+   ```bash
+   # AWS CloudTrail
+   aws cloudtrail lookup-events \
+     --lookup-attributes AttributeKey=ResourceName,AttributeValue=vendorvault/app-secrets
+   
+   # Azure Monitor
+   az monitor diagnostic-settings create \
+     --resource /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/vendorvault-keyvault \
+     --name keyvault-logs \
+     --logs '[{"category": "AuditEvent", "enabled": true}]'
+   ```
+
+4. **Rotate Regularly**
+   - Database passwords: Every 90 days
+   - API keys: Per vendor requirements
+   - Service credentials: Every 90 days
+
+5. **Version Control**
+   - AWS Secrets Manager: Automatic versioning
+   - Azure Key Vault: Enable versioning
+   - Allows rollback if needed
+
+#### âŒ DON'Ts
+
+1. **Never commit `.env` to Git**
+   ```bash
+   # Add to .gitignore
+   echo ".env" >> .gitignore
+   echo ".env.local" >> .gitignore
+   echo ".env.*.local" >> .gitignore
+   ```
+
+2. **Don't use long-lived access keys**
+   - Prefer IAM roles and Managed Identity
+   - If using keys, rotate every 90 days
+
+3. **Don't log secret values**
+   ```typescript
+   // âŒ Bad
+   console.log('JWT Secret:', jwtSecret);
+   
+   // âœ… Good
+   console.log('JWT Secret: loaded âœ“');
+   ```
+
+4. **Don't store secrets in code**
+   ```typescript
+   // âŒ Bad
+   const apiKey = 'sk-1234567890abcdef';
+   
+   // âœ… Good
+   const apiKey = await getSecret('API_KEY');
+   ```
+
+---
+
+### Cost Analysis
+
+#### AWS Secrets Manager Pricing
+
+```
+Secret storage:     $0.40 per secret per month
+API calls:          $0.05 per 10,000 API calls
+Rotation (Lambda):  $0.20 per 1M requests (Lambda pricing)
+
+Example (10 secrets, 100K API calls/month):
+- Storage (10 secrets):      $4.00/month
+- API calls (100K):           $0.50/month
+- Rotation:                   ~$0.10/month
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Total:                        ~$4.60/month
+```
+
+#### Azure Key Vault Pricing
+
+```
+Standard tier:      $0.03 per 10,000 transactions
+Premium tier:       $1.00 per 10,000 transactions (HSM-backed)
+
+Example (100K transactions/month):
+- Standard tier:              $0.30/month
+- Certificate renewals:       Free
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Total:                        ~$0.30/month
+```
+
+**Cost Optimization:**
+- Cache secrets in application memory (refresh periodically)
+- Use connection pooling to reduce database credential retrieval
+- Implement secret value caching (5-15 minutes TTL)
+
+---
+
+### Environment Variable Mapping
+
+#### Development (.env file)
+```env
+DATABASE_URL="postgresql://localhost:5432/vendorvault"
+JWT_SECRET="dev-secret"
+REDIS_PASSWORD="redis-password"
+```
+
+#### Production (AWS Secrets Manager)
+```json
+{
+  "DATABASE_URL": "postgresql://admin:password@rds.amazonaws.com:5432/vendorvault",
+  "JWT_SECRET": "prod-super-secret-key",
+  "REDIS_PASSWORD": "prod-redis-password",
+  "NEXTAUTH_SECRET": "nextauth-secret-key",
+  "AWS_S3_BUCKET_NAME": "vendorvault-prod-uploads"
+}
+```
+
+#### Production (Azure Key Vault)
+```
+DATABASE-URL â†’ DATABASE_URL
+JWT-SECRET â†’ JWT_SECRET
+REDIS-PASSWORD â†’ REDIS_PASSWORD
+NEXTAUTH-SECRET â†’ NEXTAUTH_SECRET
+S3-BUCKET-NAME â†’ AWS_S3_BUCKET_NAME
+```
+
+---
+
+### Troubleshooting
+
+#### Issue: "AccessDeniedException" (AWS)
+**Solution:**
+- Verify IAM role/user has `secretsmanager:GetSecretValue` permission
+- Check secret ARN is correct
+- Ensure region matches
+
+#### Issue: "SecretNotFound" (AWS)
+**Solution:**
+- Verify secret name or ARN
+- Check AWS region
+- Ensure secret exists: `aws secretsmanager describe-secret --secret-id <name>`
+
+#### Issue: "Forbidden" (Azure Key Vault)
+**Solution:**
+- Check Managed Identity or Service Principal has "Key Vault Secrets User" role
+- Verify RBAC is enabled on Key Vault
+- Check firewall settings allow your IP
+
+#### Issue: "VaultNotFound" (Azure)
+**Solution:**
+- Verify vault name is correct
+- Check subscription and resource group
+- Ensure vault exists: `az keyvault show --name <vault-name>`
+
+#### Issue: Secrets not loading
+**Solution:**
+```bash
+# Test AWS connection
+aws secretsmanager get-secret-value --secret-id vendorvault/app-secrets
+
+# Test Azure connection
+az keyvault secret show --vault-name vendorvault-keyvault --name DATABASE-URL
+
+# Check environment variables
+echo $SECRET_ARN
+echo $KEYVAULT_NAME
+```
+
+---
+
+### Compliance & Audit
+
+#### Audit Log Examples
+
+**AWS CloudTrail Query:**
+```sql
+SELECT eventTime, userIdentity.principalId, eventName, requestParameters
+FROM cloudtrail_logs
+WHERE eventSource = 'secretsmanager.amazonaws.com'
+  AND eventName IN ('GetSecretValue', 'PutSecretValue')
+  AND requestParameters.secretId LIKE '%vendorvault%'
+ORDER BY eventTime DESC
+LIMIT 100;
+```
+
+**Azure Monitor Query:**
+```kql
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.KEYVAULT"
+| where OperationName == "SecretGet"
+| project TimeGenerated, CallerIPAddress, ResultType, id_s
+| order by TimeGenerated desc
+| take 100
+```
+
+#### Compliance Checklist
+
+- [ ] Secrets encrypted at rest (KMS/HSM)
+- [ ] Secrets encrypted in transit (TLS 1.2+)
+- [ ] Least-privilege IAM policies
+- [ ] Audit logging enabled
+- [ ] Secret rotation configured
+- [ ] No secrets in version control
+- [ ] No secrets in application logs
+- [ ] Regular access reviews (quarterly)
+- [ ] Incident response plan documented
+- [ ] Backup/recovery tested
+
+---
+
 ## �🚀 Getting Started
 
 ### Prerequisites
@@ -624,6 +1225,12 @@ cd vendorvault
 2. **Install dependencies**
 ```bash
 npm install
+
+# Install AWS Secrets Manager SDK (if using AWS):
+npm install @aws-sdk/client-secrets-manager
+
+# Install Azure Key Vault SDK (if using Azure):
+npm install @azure/keyvault-secrets @azure/identity
 ```
 
 3. **Set up environment variables**
@@ -894,6 +1501,38 @@ await fetch('/api/files', {
     documentType: 'LICENSE'
   })
 });
+```
+
+### Secret Management Endpoints
+```
+GET    /api/secrets/test           - Test secret retrieval (Dev/Test only)
+```
+
+**⚠️ Security Warning:**
+The `/api/secrets/test` endpoint is for development and testing only. It requires Bearer token authentication via the `SECRETS_TEST_TOKEN` environment variable and should be disabled or removed in production environments.
+
+**Example: Test Secrets**
+```bash
+# Configure in .env
+SECRETS_TEST_TOKEN="your-secure-test-token"
+
+# Test AWS Secrets Manager or Azure Key Vault
+curl -H "Authorization: Bearer your-secure-test-token" \
+  http://localhost:3000/api/secrets/test
+
+# Response
+{
+  "success": true,
+  "message": "Secret retrieval tested successfully",
+  "results": [
+    {
+      "provider": "AWS Secrets Manager",
+      "configured": true,
+      "secretsRetrieved": 4,
+      "secretKeys": ["DATABASE_URL", "JWT_SECRET", "REDIS_PASSWORD", "NEXTAUTH_SECRET"]
+    }
+  ]
+}
 ```
 
 ---
