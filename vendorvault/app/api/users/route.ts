@@ -5,7 +5,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { successResponse } from "@/lib/api-response";
+import { successResponse, errorResponse } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import redis from "@/lib/redis";
 
@@ -20,74 +20,90 @@ import redis from "@/lib/redis";
  * @returns {object} - Success response with complete user data from database
  */
 export async function GET(request: NextRequest) {
-  // User is already authenticated by middleware
-  // We can safely access user info from headers
-  const userId = request.headers.get("x-user-id");
-  const userRole = request.headers.get("x-user-role");
-
-  // Check Redis cache first
-  const cacheKey = `user:${userId}`;
   try {
-    const cachedData = await redis.get(cacheKey);
+    // User is already authenticated by middleware
+    // We can safely access user info from headers
+    const userId = request.headers.get("x-user-id");
+    const userRole = request.headers.get("x-user-role");
 
-    if (cachedData) {
-      console.log("✅ Cache Hit - User data served from Redis");
-      return successResponse(
-        JSON.parse(cachedData),
-        "User information retrieved successfully (cached)"
+    if (!userId) {
+      return errorResponse("User ID not found in request", 401);
+    }
+
+    // Check Redis cache first
+    const cacheKey = `user:${userId}`;
+    try {
+      const cachedData = await redis.get(cacheKey);
+
+      if (cachedData) {
+        console.log("✅ Cache Hit - User data served from Redis");
+        return successResponse(
+          JSON.parse(cachedData),
+          "User information retrieved successfully (cached)"
+        );
+      }
+    } catch (redisError) {
+      console.warn(
+        "⚠️ Redis cache read failed, falling back to database:",
+        redisError
       );
     }
-  } catch (redisError) {
-    console.warn(
-      "⚠️ Redis cache read failed, falling back to database:",
-      redisError
-    );
-  }
 
-  console.log("❌ Cache Miss - Fetching user data from database");
+    console.log("❌ Cache Miss - Fetching user data from database");
 
-  // Fetch complete user information from database
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId!) },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      phone: true,
-      isActive: true,
-      emailVerified: true,
-      createdAt: true,
-      updatedAt: true,
-      vendor: {
-        select: {
-          id: true,
-          businessName: true,
-          stallType: true,
-          stationName: true,
+    // Fetch complete user information from database
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId!) },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        phone: true,
+        isActive: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            stallType: true,
+            stationName: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  const responseData = {
-    message: "User route accessible to all authenticated users.",
-    role: userRole,
-    user: user,
-    accessLevel:
-      "This route is available to ADMIN, VENDOR, and INSPECTOR roles.",
-  };
+    if (!user) {
+      return errorResponse("User not found", 404);
+    }
 
-  // Cache the response for 300 seconds (5 minutes)
-  try {
-    await redis.set(cacheKey, JSON.stringify(responseData), "EX", 300);
-    console.log("💾 User data cached successfully");
-  } catch (redisError) {
-    console.warn("⚠️ Failed to cache user data:", redisError);
+    const responseData = {
+      message: "User route accessible to all authenticated users.",
+      role: userRole,
+      user: user,
+      accessLevel:
+        "This route is available to ADMIN, VENDOR, and INSPECTOR roles.",
+    };
+
+    // Cache the response for 300 seconds (5 minutes)
+    try {
+      await redis.set(cacheKey, JSON.stringify(responseData), "EX", 300);
+      console.log("💾 User data cached successfully");
+    } catch (redisError) {
+      console.warn("⚠️ Failed to cache user data:", redisError);
+    }
+
+    return successResponse(
+      responseData,
+      "User information retrieved successfully"
+    );
+  } catch (error) {
+    console.error("❌ Error in GET /api/users:", error);
+    return errorResponse(
+      error instanceof Error ? error.message : "Failed to fetch user data",
+      500
+    );
   }
-
-  return successResponse(
-    responseData,
-    "User information retrieved successfully"
-  );
 }

@@ -33,20 +33,49 @@ export default function ManageUsers() {
     role: "INSPECTOR",
   });
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/users", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("vendorvault_token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Failed to load users");
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUsers(data.data || []);
+      } else {
+        console.error("Failed to load users");
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/auth/login");
       return;
     }
 
-    if (user.role !== "ADMIN") {
-      showError("Unauthorized access. Admin role required.");
+    if (user?.role !== "ADMIN") {
       router.push("/dashboard");
       return;
     }
 
     fetchUsers();
-  }, [isAuthenticated, user, router, showError, fetchUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.role]);
 
   useEffect(() => {
     const filterUsersByRole = () => {
@@ -60,36 +89,6 @@ export default function ManageUsers() {
     };
     filterUsersByRole();
   }, [filterRole, users]);
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const response = await fetch("/api/users", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("vendorvault_token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        showError("Failed to load users");
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setUsers(data.data || []);
-      } else {
-        showError("Failed to load users");
-      }
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      showError("An error occurred while loading users");
-    } finally {
-      setLoading(false);
-    }
-  }, [showError]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();

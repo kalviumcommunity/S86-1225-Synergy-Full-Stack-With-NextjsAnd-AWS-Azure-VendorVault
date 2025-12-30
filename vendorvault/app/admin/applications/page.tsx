@@ -42,6 +42,7 @@ export default function AdminApplications() {
     useState<VendorApplication | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
@@ -57,10 +58,12 @@ export default function AdminApplications() {
     }
 
     fetchApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user]);
 
   useEffect(() => {
     filterApplicationsByStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, applications]);
 
   const fetchApplications = async () => {
@@ -98,8 +101,10 @@ export default function AdminApplications() {
       setFilteredApplications(applications);
     } else {
       const filtered = applications.filter((app) => {
+        if (!app.licenses || app.licenses.length === 0) {
+          return filterStatus === "no-license";
+        }
         const latestLicense = app.licenses[0];
-        if (!latestLicense) return filterStatus === "no-license";
         return latestLicense.status === filterStatus.toUpperCase();
       });
       setFilteredApplications(filtered);
@@ -108,6 +113,14 @@ export default function AdminApplications() {
 
   const handleApprove = async () => {
     if (!selectedApplication) return;
+
+    if (
+      !selectedApplication.licenses ||
+      selectedApplication.licenses.length === 0
+    ) {
+      showError("No license found for this application");
+      return;
+    }
 
     startLoading();
     try {
@@ -144,6 +157,14 @@ export default function AdminApplications() {
   const handleReject = async () => {
     if (!selectedApplication || !rejectionReason.trim()) {
       showError("Please provide a reason for rejection");
+      return;
+    }
+
+    if (
+      !selectedApplication.licenses ||
+      selectedApplication.licenses.length === 0
+    ) {
+      showError("No license found for this application");
       return;
     }
 
@@ -212,13 +233,14 @@ export default function AdminApplications() {
 
   const stats = {
     total: applications.length,
-    pending: applications.filter((app) => app.licenses[0]?.status === "PENDING")
-      .length,
+    pending: applications.filter(
+      (app) => app.licenses?.[0]?.status === "PENDING"
+    ).length,
     approved: applications.filter(
-      (app) => app.licenses[0]?.status === "APPROVED"
+      (app) => app.licenses?.[0]?.status === "APPROVED"
     ).length,
     rejected: applications.filter(
-      (app) => app.licenses[0]?.status === "REJECTED"
+      (app) => app.licenses?.[0]?.status === "REJECTED"
     ).length,
   };
 
@@ -374,7 +396,7 @@ export default function AdminApplications() {
             </Card>
           ) : (
             filteredApplications.map((app) => {
-              const latestLicense = app.licenses[0];
+              const latestLicense = app.licenses?.[0];
               const status = latestLicense?.status || "NO LICENSE";
 
               return (
@@ -404,12 +426,12 @@ export default function AdminApplications() {
                           <p
                             className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
                           >
-                            {app.user.name}
+                            {app.user?.name || "N/A"}
                           </p>
                           <p
                             className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
                           >
-                            {app.user.email}
+                            {app.user?.email || "N/A"}
                           </p>
                         </div>
                         <div>
@@ -491,7 +513,15 @@ export default function AdminApplications() {
                           </Button>
                         </>
                       )}
-                      <Button variant="secondary">View Details</Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedApplication(app);
+                          setShowDetailsModal(true);
+                        }}
+                      >
+                        View Details
+                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -581,6 +611,220 @@ export default function AdminApplications() {
               >
                 Cancel
               </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedApplication && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card className="max-w-4xl w-full p-6 my-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3
+                className={`text-2xl font-bold ${isDarkMode ? "text-white" : "text-gray-900"}`}
+              >
+                Application Details
+              </h3>
+              <Button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedApplication(null);
+                }}
+                variant="secondary"
+              >
+                ✕
+              </Button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Business Information */}
+              <div>
+                <h4
+                  className={`text-lg font-semibold mb-3 ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                >
+                  Business Information
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p
+                      className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      Business Name
+                    </p>
+                    <p
+                      className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                    >
+                      {selectedApplication.businessName}
+                    </p>
+                  </div>
+                  <div>
+                    <p
+                      className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      Stall Type
+                    </p>
+                    <p
+                      className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                    >
+                      {selectedApplication.stallType}
+                    </p>
+                  </div>
+                  <div>
+                    <p
+                      className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      Station
+                    </p>
+                    <p
+                      className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                    >
+                      {selectedApplication.stationName}
+                    </p>
+                  </div>
+                  <div>
+                    <p
+                      className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      Location
+                    </p>
+                    <p
+                      className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                    >
+                      {selectedApplication.city}, {selectedApplication.state}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Applicant Information */}
+              <div>
+                <h4
+                  className={`text-lg font-semibold mb-3 ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                >
+                  Applicant Information
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p
+                      className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      Name
+                    </p>
+                    <p
+                      className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                    >
+                      {selectedApplication.user?.name || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p
+                      className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      Email
+                    </p>
+                    <p
+                      className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                    >
+                      {selectedApplication.user?.email || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p
+                      className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      Application Date
+                    </p>
+                    <p
+                      className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                    >
+                      {new Date(
+                        selectedApplication.createdAt
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* License Status */}
+              {selectedApplication.licenses?.[0] && (
+                <div>
+                  <h4
+                    className={`text-lg font-semibold mb-3 ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                  >
+                    License Status
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p
+                        className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                      >
+                        License Number
+                      </p>
+                      <p
+                        className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}
+                      >
+                        {selectedApplication.licenses[0].licenseNumber}
+                      </p>
+                    </div>
+                    <div>
+                      <p
+                        className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}
+                      >
+                        Status
+                      </p>
+                      <span
+                        className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                          selectedApplication.licenses[0].status === "APPROVED"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : selectedApplication.licenses[0].status ===
+                                "REJECTED"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        }`}
+                      >
+                        {selectedApplication.licenses[0].status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                {selectedApplication.licenses?.[0]?.status === "PENDING" && (
+                  <>
+                    <Button
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        setShowApprovalModal(true);
+                      }}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      ✓ Approve Application
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        setShowRejectionModal(true);
+                      }}
+                      className="flex-1 bg-red-600 hover:bg-red-700"
+                    >
+                      ✕ Reject Application
+                    </Button>
+                  </>
+                )}
+                <Button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedApplication(null);
+                  }}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           </Card>
         </div>

@@ -173,31 +173,3 @@ export async function sendLicenseRejectionEmail(
     html: template,
   });
 }
-
-/**
- * Send vendor application status update
- */
-export async function sendVendorApplicationEmail(
-  email: string,
-  template: string
-): Promise<EmailResponse> {
-  return sendEmail({
-    to: email,
-    subject: "Vendor Application Update",
-    html: template,
-  });
-}
-
-/**
- * Send license approval notification
- */
-export async function sendLicenseApprovalEmail(
-  email: string,
-  template: string
-): Promise<EmailResponse> {
-  return sendEmail({
-    to: email,
-    subject: "Your License Has Been Approved! 🎉",
-    html: template,
-  });
-}
