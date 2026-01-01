@@ -1,6 +1,6 @@
 # 🚀 VendorVault - Quick Start Guide
 
-## One-Command Setup
+## Development Setup (One-Command)
 
 ```bash
 # 1. Navigate to project
@@ -27,6 +27,54 @@ npm run dev
 ```
 
 Visit: http://localhost:3000
+
+---
+
+## Docker Deployment (Quick)
+
+### Local Testing with Docker
+
+```bash
+# Build the container
+cd vendorvault
+docker build -t vendorvault:latest .
+
+# Run locally
+docker run -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
+  -e NEXTAUTH_SECRET="your-secret" \
+  vendorvault:latest
+
+# Or use Docker Compose (full stack)
+cd ..
+docker-compose up -d
+```
+
+### Cloud Deployment
+
+#### AWS ECS (5 minutes)
+```bash
+# 1. Push to ECR
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
+docker tag vendorvault:latest <account-id>.dkr.ecr.ap-south-1.amazonaws.com/vendorvault:latest
+docker push <account-id>.dkr.ecr.ap-south-1.amazonaws.com/vendorvault:latest
+
+# 2. Deploy to ECS
+aws ecs update-service --cluster vendorvault-cluster --service vendorvault-service --force-new-deployment
+```
+
+#### Azure App Service (5 minutes)
+```bash
+# 1. Push to ACR
+az acr login --name kalviumregistry
+docker tag vendorvault:latest kalviumregistry.azurecr.io/vendorvault:latest
+docker push kalviumregistry.azurecr.io/vendorvault:latest
+
+# 2. Restart App Service (auto-pulls latest image)
+az webapp restart --name vendorvault-app --resource-group vendorvault-rg
+```
+
+**📖 Full Deployment Guide:** See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete setup instructions.
 
 ---
 
