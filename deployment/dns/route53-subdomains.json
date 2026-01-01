@@ -1,0 +1,31 @@
+{
+  "Comment": "Create CNAME records for staging and API subdomains",
+  "Changes": [
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "staging.vendorvault.com",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "vendorvault-staging-alb.ap-south-1.elb.amazonaws.com"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "api.vendorvault.com",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "vendorvault.com"
+          }
+        ]
+      }
+    }
+  ]
+}
