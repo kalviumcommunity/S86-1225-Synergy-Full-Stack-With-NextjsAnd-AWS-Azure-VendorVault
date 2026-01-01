@@ -1,0 +1,49 @@
+{
+  "ServiceName": "vendorvault-cluster",
+  "MinCapacity": 1,
+  "MaxCapacity": 5,
+  "TargetValue": 70.0,
+  "ScaleInCooldown": 300,
+  "ScaleOutCooldown": 60,
+  "PredefinedMetricType": "ECSServiceAverageCPUUtilization",
+  
+  "ScalingPolicies": [
+    {
+      "PolicyName": "cpu-autoscaling",
+      "PolicyType": "TargetTrackingScaling",
+      "TargetTrackingScalingPolicyConfiguration": {
+        "TargetValue": 70.0,
+        "PredefinedMetricSpecification": {
+          "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+        },
+        "ScaleInCooldown": 300,
+        "ScaleOutCooldown": 60
+      }
+    },
+    {
+      "PolicyName": "memory-autoscaling",
+      "PolicyType": "TargetTrackingScaling",
+      "TargetTrackingScalingPolicyConfiguration": {
+        "TargetValue": 80.0,
+        "PredefinedMetricSpecification": {
+          "PredefinedMetricType": "ECSServiceAverageMemoryUtilization"
+        },
+        "ScaleInCooldown": 300,
+        "ScaleOutCooldown": 60
+      }
+    },
+    {
+      "PolicyName": "request-count-autoscaling",
+      "PolicyType": "TargetTrackingScaling",
+      "TargetTrackingScalingPolicyConfiguration": {
+        "TargetValue": 1000.0,
+        "PredefinedMetricSpecification": {
+          "PredefinedMetricType": "ALBRequestCountPerTarget",
+          "ResourceLabel": "app/vendorvault-alb/xxxxxxxxx/targetgroup/vendorvault-tg/xxxxxxxxx"
+        },
+        "ScaleInCooldown": 300,
+        "ScaleOutCooldown": 60
+      }
+    }
+  ]
+}

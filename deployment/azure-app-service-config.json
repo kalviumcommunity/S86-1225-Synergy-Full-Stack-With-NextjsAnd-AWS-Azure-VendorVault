@@ -1,0 +1,60 @@
+{
+  "name": "vendorvault-app",
+  "location": "Central India",
+  "kind": "linux",
+  "type": "app",
+  "properties": {
+    "serverFarmId": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/vendorvault-rg/providers/Microsoft.Web/serverfarms/vendorvault-plan",
+    "siteConfig": {
+      "linuxFxVersion": "DOCKER|kalviumregistry.azurecr.io/vendorvault:latest",
+      "appSettings": [
+        {
+          "name": "DOCKER_REGISTRY_SERVER_URL",
+          "value": "https://kalviumregistry.azurecr.io"
+        },
+        {
+          "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+          "value": "<ACR_USERNAME>"
+        },
+        {
+          "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+          "value": "<ACR_PASSWORD>"
+        },
+        {
+          "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+          "value": "false"
+        },
+        {
+          "name": "WEBSITES_PORT",
+          "value": "3000"
+        },
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "NEXT_TELEMETRY_DISABLED",
+          "value": "1"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "@Microsoft.KeyVault(SecretUri=https://vendorvault-kv.vault.azure.net/secrets/database-url/)"
+        },
+        {
+          "name": "REDIS_URL",
+          "value": "@Microsoft.KeyVault(SecretUri=https://vendorvault-kv.vault.azure.net/secrets/redis-url/)"
+        },
+        {
+          "name": "NEXTAUTH_SECRET",
+          "value": "@Microsoft.KeyVault(SecretUri=https://vendorvault-kv.vault.azure.net/secrets/nextauth-secret/)"
+        }
+      ],
+      "alwaysOn": true,
+      "http20Enabled": true,
+      "ftpsState": "Disabled",
+      "minTlsVersion": "1.2"
+    },
+    "httpsOnly": true,
+    "clientAffinityEnabled": false
+  }
+}

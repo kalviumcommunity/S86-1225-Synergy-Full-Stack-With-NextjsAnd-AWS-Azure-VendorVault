@@ -1403,32 +1403,153 @@ npm run test:coverage    # Coverage report
 
 ## 🌐 Deployment
 
-### Vercel (Recommended for Next.js)
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
+VendorVault supports multiple deployment strategies with containerization using Docker. The application can be deployed to AWS ECS (Fargate) or Azure App Service for Containers with automated CI/CD pipelines.
 
-**Important**: Ensure your cloud database allows Vercel's IP ranges
+### 🐳 Docker Containerization
 
-### AWS (EC2 + RDS)
-1. Provision EC2 instance
-2. Deploy application with PM2 or Docker
-3. Connect to RDS instance in same VPC
-4. Use Application Load Balancer for HTTPS
+**Multi-Stage Build Features:**
+- ✅ Optimized 3-stage build (Dependencies → Builder → Runner)
+- ✅ Reduced image size (~150MB vs ~1GB)
+- ✅ Non-root user for security
+- ✅ Built-in health checks
+- ✅ Production-ready with Prisma and Next.js standalone
 
-### Azure (App Service + Azure Database)
-1. Create App Service (Node.js)
-2. Deploy via GitHub Actions or Azure DevOps
-3. Connect to Azure Database for PostgreSQL
-4. Enable Application Insights for monitoring
+**Quick Start:**
+```bash
+# Build and run locally
+cd vendorvault
+docker build -t vendorvault:latest .
+docker run -p 3000:3000 vendorvault:latest
 
-### Environment Variables in Production
-Ensure all production environment variables are set:
-- `DATABASE_URL` with cloud database endpoint
-- `NEXTAUTH_URL` with production domain
-- SSL certificates configured
-- S3/Blob storage credentials
-- Email service credentials
+# Or use Docker Compose for full stack
+docker-compose up -d
+```
+
+### ☁️ Cloud Deployment Options
+
+#### Option 1: AWS ECS (Fargate) ⭐ Recommended
+
+**Setup Process:**
+1. **Push to Amazon ECR**
+   ```bash
+   aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
+   docker build -t vendorvault .
+   docker tag vendorvault:latest <account-id>.dkr.ecr.ap-south-1.amazonaws.com/vendorvault:latest
+   docker push <account-id>.dkr.ecr.ap-south-1.amazonaws.com/vendorvault:latest
+   ```
+
+2. **Deploy to ECS**
+   - Task Definition: 0.5 vCPU, 1GB memory
+   - Service: Fargate launch type with auto-scaling (1-5 tasks)
+   - Load Balancer: Application LB with health checks
+   - Auto-scaling: CPU > 70%, Memory > 80%, or Request count > 1000
+
+**Features:**
+- ✅ Fargate serverless containers
+- ✅ Auto-scaling based on CPU/Memory/Request count
+- ✅ Integrated with CloudWatch for logging
+- ✅ AWS Secrets Manager for environment variables
+- ✅ CI/CD via GitHub Actions
+
+#### Option 2: Azure App Service for Containers
+
+**Setup Process:**
+1. **Push to Azure Container Registry**
+   ```bash
+   az acr login --name kalviumregistry
+   docker build -t vendorvault .
+   docker tag vendorvault kalviumregistry.azurecr.io/vendorvault:latest
+   docker push kalviumregistry.azurecr.io/vendorvault:latest
+   ```
+
+2. **Deploy to App Service**
+   - Create Web App with Docker Container
+   - Configure container settings (Port: 3000)
+   - Enable continuous deployment
+   - Set up auto-scaling rules
+
+**Features:**
+- ✅ Premium v3 tier (P1v3: 2 vCPU, 8GB RAM)
+- ✅ Auto-scaling: 1-5 instances
+- ✅ Azure Key Vault integration
+- ✅ Application Insights monitoring
+- ✅ CI/CD via GitHub Actions
+
+#### Option 3: Vercel (Serverless)
+
+Best for quick deployments without Docker:
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+cd vendorvault
+vercel --prod
+```
+
+**Note:** Ensure cloud database allows Vercel's IP ranges
+
+### 🔄 CI/CD Pipelines
+
+**GitHub Actions workflows included:**
+- `.github/workflows/deploy-aws-ecs.yml` - AWS ECS deployment
+- `.github/workflows/deploy-azure.yml` - Azure App Service deployment
+
+**Required Secrets:**
+- AWS: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- Azure: `AZURE_CREDENTIALS`, `ACR_USERNAME`, `ACR_PASSWORD`
+
+**Deployment Flow:**
+1. Push to main/production branch
+2. GitHub Actions builds Docker image
+3. Pushes to container registry (ECR/ACR)
+4. Updates cloud service with new image
+5. Rolling deployment with zero downtime
+
+### 📋 Deployment Configurations
+
+All deployment configurations are available in the `/deployment` directory:
+- `ecs-task-definition.json` - AWS ECS task configuration
+- `ecs-service-definition.json` - AWS ECS service settings
+- `ecs-autoscaling.json` - Auto-scaling policies
+- `azure-app-service-config.json` - Azure App Service configuration
+- `azure-autoscaling.json` - Azure auto-scaling rules
+- `COMMANDS.md` - Complete command reference for both platforms
+
+### 📖 Comprehensive Documentation
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md) which covers:
+- Complete Docker setup and optimization
+- Step-by-step AWS ECS deployment
+- Step-by-step Azure App Service deployment
+- CI/CD pipeline configuration
+- Auto-scaling strategies
+- Monitoring and observability
+- Security best practices
+- Performance optimization
+- Troubleshooting guide
+- Cost optimization tips
+
+### 🔒 Production Environment Variables
+
+Ensure all production environment variables are set via Secrets Manager/Key Vault:
+- `DATABASE_URL` - Cloud database connection string
+- `REDIS_URL` - Redis connection string
+- `NEXTAUTH_URL` - Production domain URL
+- `NEXTAUTH_SECRET` - JWT signing secret
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` - For S3
+- `AZURE_STORAGE_CONNECTION_STRING` - For Blob Storage
+- Email service credentials (AWS SES or SendGrid)
+
+### 🎯 Deployment Recommendations
+
+| Environment | Platform | Reasoning |
+|-------------|----------|-----------|
+| **Development** | Docker Compose locally | Fast iteration, full stack |
+| **Staging** | AWS ECS Fargate (1 task) | Production-like, cost-effective |
+| **Production** | AWS ECS Fargate (2-5 tasks) | Auto-scaling, high availability |
+| **Alternative** | Azure App Service | Simplified management, good Azure integration |
+| **Serverless** | Vercel | Quick deployments, edge optimization |
 
 ---
 

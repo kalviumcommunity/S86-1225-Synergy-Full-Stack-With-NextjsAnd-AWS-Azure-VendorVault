@@ -1,0 +1,68 @@
+{
+  "sku": {
+    "name": "P1v3",
+    "tier": "PremiumV3",
+    "size": "P1v3",
+    "capacity": 1
+  },
+  "properties": {
+    "minimumCapacity": 1,
+    "maximumCapacity": 5,
+    "rules": [
+      {
+        "metricTrigger": {
+          "metricName": "CpuPercentage",
+          "metricResourceId": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/vendorvault-rg/providers/Microsoft.Web/serverfarms/vendorvault-plan",
+          "timeGrain": "PT1M",
+          "statistic": "Average",
+          "timeWindow": "PT5M",
+          "timeAggregation": "Average",
+          "operator": "GreaterThan",
+          "threshold": 70
+        },
+        "scaleAction": {
+          "direction": "Increase",
+          "type": "ChangeCount",
+          "value": "1",
+          "cooldown": "PT5M"
+        }
+      },
+      {
+        "metricTrigger": {
+          "metricName": "CpuPercentage",
+          "metricResourceId": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/vendorvault-rg/providers/Microsoft.Web/serverfarms/vendorvault-plan",
+          "timeGrain": "PT1M",
+          "statistic": "Average",
+          "timeWindow": "PT5M",
+          "timeAggregation": "Average",
+          "operator": "LessThan",
+          "threshold": 30
+        },
+        "scaleAction": {
+          "direction": "Decrease",
+          "type": "ChangeCount",
+          "value": "1",
+          "cooldown": "PT10M"
+        }
+      },
+      {
+        "metricTrigger": {
+          "metricName": "MemoryPercentage",
+          "metricResourceId": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/vendorvault-rg/providers/Microsoft.Web/serverfarms/vendorvault-plan",
+          "timeGrain": "PT1M",
+          "statistic": "Average",
+          "timeWindow": "PT5M",
+          "timeAggregation": "Average",
+          "operator": "GreaterThan",
+          "threshold": 80
+        },
+        "scaleAction": {
+          "direction": "Increase",
+          "type": "ChangeCount",
+          "value": "1",
+          "cooldown": "PT5M"
+        }
+      }
+    ]
+  }
+}
