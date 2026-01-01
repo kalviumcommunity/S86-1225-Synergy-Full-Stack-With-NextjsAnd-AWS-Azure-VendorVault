@@ -1,0 +1,173 @@
+// Kusto Query Language (KQL) queries for Azure Monitor
+
+// 1. ERROR LOGS - Last 24 hours
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"level\":\"error\""
+| extend LogData = parse_json(ResultDescription)
+| project 
+    TimeGenerated,
+    Level = LogData.level,
+    Message = LogData.message,
+    RequestId = LogData.metadata.requestId,
+    Endpoint = LogData.metadata.endpoint,
+    ErrorName = LogData.error.name,
+    ErrorMessage = LogData.error.message
+| order by TimeGenerated desc
+| limit 100
+
+// 2. ERROR COUNT BY HOUR
+AppServiceConsoleLogs
+| where TimeGenerated > ago(7d)
+| where ResultDescription contains "\"level\":\"error\""
+| summarize ErrorCount = count() by bin(TimeGenerated, 1h)
+| render timechart
+
+// 3. RESPONSE TIME TRENDS
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"metadata\":{\"duration\""
+| extend LogData = parse_json(ResultDescription)
+| extend Duration = toreal(LogData.metadata.duration)
+| summarize 
+    AvgDuration = avg(Duration),
+    P50 = percentile(Duration, 50),
+    P95 = percentile(Duration, 95),
+    P99 = percentile(Duration, 99)
+    by bin(TimeGenerated, 5m)
+| render timechart
+
+// 4. SLOW API REQUESTS (>1 second)
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"metadata\":{\"duration\""
+| extend LogData = parse_json(ResultDescription)
+| extend Duration = toreal(LogData.metadata.duration)
+| where Duration > 1000
+| project 
+    TimeGenerated,
+    Endpoint = LogData.metadata.endpoint,
+    Method = LogData.metadata.method,
+    Duration,
+    RequestId = LogData.metadata.requestId
+| order by Duration desc
+| limit 50
+
+// 5. HTTP STATUS CODE DISTRIBUTION
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"statusCode\""
+| extend LogData = parse_json(ResultDescription)
+| extend StatusCode = tostring(LogData.metadata.statusCode)
+| summarize Count = count() by StatusCode
+| render piechart
+
+// 6. 5XX SERVER ERRORS
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"statusCode\""
+| extend LogData = parse_json(ResultDescription)
+| extend StatusCode = toint(LogData.metadata.statusCode)
+| where StatusCode >= 500
+| project 
+    TimeGenerated,
+    StatusCode,
+    Endpoint = LogData.metadata.endpoint,
+    Message = LogData.message,
+    ErrorMessage = LogData.error.message,
+    RequestId = LogData.metadata.requestId
+| order by TimeGenerated desc
+
+// 7. REQUEST VOLUME BY ENDPOINT
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "API request received"
+| extend LogData = parse_json(ResultDescription)
+| summarize RequestCount = count() by Endpoint = tostring(LogData.metadata.endpoint)
+| order by RequestCount desc
+| render barchart
+
+// 8. USER ACTIVITY (by IP address)
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"ip\""
+| extend LogData = parse_json(ResultDescription)
+| summarize Requests = count() by IP = tostring(LogData.metadata.ip)
+| order by Requests desc
+| limit 20
+
+// 9. DATABASE QUERY PERFORMANCE
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "Database query executed"
+| extend LogData = parse_json(ResultDescription)
+| extend Duration = toreal(LogData.metadata.duration)
+| summarize 
+    QueryCount = count(),
+    AvgDuration = avg(Duration),
+    MaxDuration = max(Duration)
+    by bin(TimeGenerated, 5m)
+| render timechart
+
+// 10. FATAL ERRORS (Critical)
+AppServiceConsoleLogs
+| where TimeGenerated > ago(7d)
+| where ResultDescription contains "\"level\":\"fatal\""
+| extend LogData = parse_json(ResultDescription)
+| project 
+    TimeGenerated,
+    Message = LogData.message,
+    ErrorName = LogData.error.name,
+    ErrorMessage = LogData.error.message,
+    Stack = LogData.error.stack,
+    RequestId = LogData.metadata.requestId
+| order by TimeGenerated desc
+
+// 11. WARNING TRENDS
+AppServiceConsoleLogs
+| where TimeGenerated > ago(7d)
+| where ResultDescription contains "\"level\":\"warn\""
+| summarize WarningCount = count() by bin(TimeGenerated, 1h)
+| render timechart
+
+// 12. UNIQUE USERS (by RequestId correlation)
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"requestId\""
+| extend LogData = parse_json(ResultDescription)
+| summarize UniqueRequests = dcount(tostring(LogData.metadata.requestId))
+| project UniqueRequests
+
+// 13. ERROR RATE PERCENTAGE
+let TotalRequests = AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "API request received"
+| count;
+let ErrorRequests = AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "\"level\":\"error\""
+| count;
+print ErrorRate = round(todouble(ErrorRequests) / todouble(TotalRequests) * 100, 2)
+
+// 14. TOP ERROR MESSAGES
+AppServiceConsoleLogs
+| where TimeGenerated > ago(7d)
+| where ResultDescription contains "\"level\":\"error\""
+| extend LogData = parse_json(ResultDescription)
+| summarize Count = count() by ErrorMessage = tostring(LogData.error.message)
+| order by Count desc
+| limit 10
+
+// 15. PERFORMANCE BY ENDPOINT
+AppServiceConsoleLogs
+| where TimeGenerated > ago(24h)
+| where ResultDescription contains "API request completed"
+| extend LogData = parse_json(ResultDescription)
+| extend Duration = toreal(LogData.metadata.duration)
+| extend Endpoint = tostring(LogData.metadata.endpoint)
+| summarize 
+    RequestCount = count(),
+    AvgResponseTime = avg(Duration),
+    P95ResponseTime = percentile(Duration, 95)
+    by Endpoint
+| order by RequestCount desc

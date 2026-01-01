@@ -1,0 +1,150 @@
+{
+  "DashboardName": "VendorVault-Production-Dashboard",
+  "DashboardBody": {
+    "widgets": [
+      {
+        "type": "metric",
+        "properties": {
+          "metrics": [
+            ["VendorVault/Application", "ErrorCount", { "stat": "Sum", "label": "Errors" }],
+            [".", "FatalErrorCount", { "stat": "Sum", "label": "Fatal Errors" }],
+            [".", "WarningCount", { "stat": "Sum", "label": "Warnings" }]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "region": "ap-south-1",
+          "title": "Application Error Trends",
+          "yAxis": {
+            "left": {
+              "label": "Count"
+            }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "properties": {
+          "metrics": [
+            ["VendorVault/Performance", "ApiResponseTime", { "stat": "Average", "label": "Avg Response Time" }],
+            ["...", { "stat": "p99", "label": "P99 Response Time" }]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "region": "ap-south-1",
+          "title": "API Response Time",
+          "yAxis": {
+            "left": {
+              "label": "Milliseconds"
+            }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "properties": {
+          "metrics": [
+            ["VendorVault/Application", "ClientErrors", { "stat": "Sum", "label": "4xx Errors" }],
+            [".", "ServerErrors", { "stat": "Sum", "label": "5xx Errors" }]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "region": "ap-south-1",
+          "title": "HTTP Error Status Codes",
+          "yAxis": {
+            "left": {
+              "label": "Count"
+            }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "properties": {
+          "metrics": [
+            ["AWS/ECS", "CPUUtilization", { "dimensions": { "ServiceName": "vendorvault-service", "ClusterName": "vendorvault-cluster" }, "stat": "Average" }],
+            [".", "MemoryUtilization", { "dimensions": { "ServiceName": "vendorvault-service", "ClusterName": "vendorvault-cluster" }, "stat": "Average" }]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "region": "ap-south-1",
+          "title": "ECS Service Resource Utilization",
+          "yAxis": {
+            "left": {
+              "label": "Percent"
+            }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "properties": {
+          "metrics": [
+            ["AWS/ApplicationELB", "TargetResponseTime", { "dimensions": { "LoadBalancer": "app/vendorvault-alb/LOAD_BALANCER_ID" }, "stat": "Average" }]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "region": "ap-south-1",
+          "title": "Load Balancer Response Time",
+          "yAxis": {
+            "left": {
+              "label": "Seconds"
+            }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "properties": {
+          "metrics": [
+            ["AWS/ApplicationELB", "RequestCount", { "dimensions": { "LoadBalancer": "app/vendorvault-alb/LOAD_BALANCER_ID" }, "stat": "Sum" }]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "region": "ap-south-1",
+          "title": "Request Count",
+          "yAxis": {
+            "left": {
+              "label": "Count"
+            }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "properties": {
+          "metrics": [
+            ["VendorVault/Database", "DatabaseQueryDuration", { "stat": "Average", "label": "Avg Query Time" }],
+            ["...", { "stat": "p95", "label": "P95 Query Time" }]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "region": "ap-south-1",
+          "title": "Database Query Performance",
+          "yAxis": {
+            "left": {
+              "label": "Milliseconds"
+            }
+          }
+        }
+      },
+      {
+        "type": "log",
+        "properties": {
+          "query": "SOURCE '/ecs/vendorvault'\n| fields @timestamp, level, message, metadata.requestId, metadata.duration\n| filter level = \"error\"\n| sort @timestamp desc\n| limit 20",
+          "region": "ap-south-1",
+          "title": "Recent Error Logs",
+          "stacked": false
+        }
+      },
+      {
+        "type": "log",
+        "properties": {
+          "query": "SOURCE '/ecs/vendorvault'\n| fields @timestamp, metadata.endpoint, metadata.duration\n| filter metadata.duration > 1000\n| sort metadata.duration desc\n| limit 20",
+          "region": "ap-south-1",
+          "title": "Slow API Requests (>1s)",
+          "stacked": false
+        }
+      }
+    ]
+  }
+}

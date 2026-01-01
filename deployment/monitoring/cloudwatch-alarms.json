@@ -1,0 +1,163 @@
+{
+  "alarms": [
+    {
+      "AlarmName": "VendorVault-HighErrorRate",
+      "AlarmDescription": "Triggers when error count exceeds threshold",
+      "MetricName": "ErrorCount",
+      "Namespace": "VendorVault/Application",
+      "Statistic": "Sum",
+      "Period": 300,
+      "EvaluationPeriods": 2,
+      "Threshold": 10,
+      "ComparisonOperator": "GreaterThanThreshold",
+      "TreatMissingData": "notBreaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-alerts"
+      ]
+    },
+    {
+      "AlarmName": "VendorVault-FatalErrors",
+      "AlarmDescription": "Triggers on any fatal error",
+      "MetricName": "FatalErrorCount",
+      "Namespace": "VendorVault/Application",
+      "Statistic": "Sum",
+      "Period": 60,
+      "EvaluationPeriods": 1,
+      "Threshold": 1,
+      "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+      "TreatMissingData": "notBreaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-critical-alerts"
+      ]
+    },
+    {
+      "AlarmName": "VendorVault-HighResponseTime",
+      "AlarmDescription": "Triggers when average API response time exceeds 2 seconds",
+      "MetricName": "ApiResponseTime",
+      "Namespace": "VendorVault/Performance",
+      "Statistic": "Average",
+      "Period": 300,
+      "EvaluationPeriods": 2,
+      "Threshold": 2000,
+      "ComparisonOperator": "GreaterThanThreshold",
+      "TreatMissingData": "notBreaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-alerts"
+      ]
+    },
+    {
+      "AlarmName": "VendorVault-HighCPUUtilization",
+      "AlarmDescription": "Triggers when ECS CPU utilization exceeds 80%",
+      "MetricName": "CPUUtilization",
+      "Namespace": "AWS/ECS",
+      "Dimensions": [
+        {
+          "Name": "ServiceName",
+          "Value": "vendorvault-service"
+        },
+        {
+          "Name": "ClusterName",
+          "Value": "vendorvault-cluster"
+        }
+      ],
+      "Statistic": "Average",
+      "Period": 300,
+      "EvaluationPeriods": 2,
+      "Threshold": 80,
+      "ComparisonOperator": "GreaterThanThreshold",
+      "TreatMissingData": "notBreaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-alerts"
+      ]
+    },
+    {
+      "AlarmName": "VendorVault-HighMemoryUtilization",
+      "AlarmDescription": "Triggers when ECS memory utilization exceeds 85%",
+      "MetricName": "MemoryUtilization",
+      "Namespace": "AWS/ECS",
+      "Dimensions": [
+        {
+          "Name": "ServiceName",
+          "Value": "vendorvault-service"
+        },
+        {
+          "Name": "ClusterName",
+          "Value": "vendorvault-cluster"
+        }
+      ],
+      "Statistic": "Average",
+      "Period": 300,
+      "EvaluationPeriods": 2,
+      "Threshold": 85,
+      "ComparisonOperator": "GreaterThanThreshold",
+      "TreatMissingData": "notBreaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-alerts"
+      ]
+    },
+    {
+      "AlarmName": "VendorVault-HighServerErrors",
+      "AlarmDescription": "Triggers when 5xx error count exceeds threshold",
+      "MetricName": "ServerErrors",
+      "Namespace": "VendorVault/Application",
+      "Statistic": "Sum",
+      "Period": 300,
+      "EvaluationPeriods": 1,
+      "Threshold": 5,
+      "ComparisonOperator": "GreaterThanThreshold",
+      "TreatMissingData": "notBreaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-alerts"
+      ]
+    },
+    {
+      "AlarmName": "VendorVault-UnhealthyTargets",
+      "AlarmDescription": "Triggers when target group has unhealthy targets",
+      "MetricName": "UnHealthyHostCount",
+      "Namespace": "AWS/ApplicationELB",
+      "Dimensions": [
+        {
+          "Name": "TargetGroup",
+          "Value": "targetgroup/vendorvault-tg/TARGET_GROUP_ID"
+        },
+        {
+          "Name": "LoadBalancer",
+          "Value": "app/vendorvault-alb/LOAD_BALANCER_ID"
+        }
+      ],
+      "Statistic": "Average",
+      "Period": 60,
+      "EvaluationPeriods": 2,
+      "Threshold": 1,
+      "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+      "TreatMissingData": "breaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-critical-alerts"
+      ]
+    },
+    {
+      "AlarmName": "VendorVault-SlowDatabaseQueries",
+      "AlarmDescription": "Triggers when average database query time exceeds 500ms",
+      "MetricName": "DatabaseQueryDuration",
+      "Namespace": "VendorVault/Database",
+      "Statistic": "Average",
+      "Period": 300,
+      "EvaluationPeriods": 2,
+      "Threshold": 500,
+      "ComparisonOperator": "GreaterThanThreshold",
+      "TreatMissingData": "notBreaching",
+      "ActionsEnabled": true,
+      "AlarmActions": [
+        "arn:aws:sns:ap-south-1:YOUR_ACCOUNT_ID:vendorvault-alerts"
+      ]
+    }
+  ],
+  "description": "CloudWatch alarms for VendorVault application monitoring"
+}

@@ -1,0 +1,250 @@
+{
+  "alerts": [
+    {
+      "name": "VendorVault-HighErrorRate-Azure",
+      "description": "Triggers when error count exceeds 10 in 5 minutes",
+      "severity": 2,
+      "enabled": true,
+      "evaluationFrequency": "PT5M",
+      "windowSize": "PT5M",
+      "criteria": {
+        "allOf": [
+          {
+            "query": "AppServiceConsoleLogs | where TimeGenerated > ago(5m) | where ResultDescription contains '\"level\":\"error\"' | summarize ErrorCount = count()",
+            "timeAggregation": "Count",
+            "operator": "GreaterThan",
+            "threshold": 10
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-alerts"
+        ]
+      }
+    },
+    {
+      "name": "VendorVault-FatalError-Azure",
+      "description": "Triggers on any fatal error",
+      "severity": 0,
+      "enabled": true,
+      "evaluationFrequency": "PT1M",
+      "windowSize": "PT1M",
+      "criteria": {
+        "allOf": [
+          {
+            "query": "AppServiceConsoleLogs | where TimeGenerated > ago(1m) | where ResultDescription contains '\"level\":\"fatal\"' | summarize FatalCount = count()",
+            "timeAggregation": "Count",
+            "operator": "GreaterThan",
+            "threshold": 0
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-critical-alerts"
+        ]
+      }
+    },
+    {
+      "name": "VendorVault-SlowResponseTime-Azure",
+      "description": "Triggers when average response time exceeds 2 seconds",
+      "severity": 2,
+      "enabled": true,
+      "evaluationFrequency": "PT5M",
+      "windowSize": "PT10M",
+      "criteria": {
+        "allOf": [
+          {
+            "query": "AppServiceConsoleLogs | where TimeGenerated > ago(10m) | where ResultDescription contains '\"metadata\":{\"duration\"' | extend LogData = parse_json(ResultDescription) | extend Duration = toreal(LogData.metadata.duration) | summarize AvgDuration = avg(Duration)",
+            "timeAggregation": "Average",
+            "operator": "GreaterThan",
+            "threshold": 2000
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-alerts"
+        ]
+      }
+    },
+    {
+      "name": "VendorVault-HighCPU-Azure",
+      "description": "Triggers when CPU percentage exceeds 80%",
+      "severity": 2,
+      "enabled": true,
+      "evaluationFrequency": "PT5M",
+      "windowSize": "PT5M",
+      "criteria": {
+        "allOf": [
+          {
+            "metricName": "CpuPercentage",
+            "metricNamespace": "Microsoft.Web/sites",
+            "operator": "GreaterThan",
+            "threshold": 80,
+            "timeAggregation": "Average"
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-alerts"
+        ]
+      }
+    },
+    {
+      "name": "VendorVault-HighMemory-Azure",
+      "description": "Triggers when memory percentage exceeds 85%",
+      "severity": 2,
+      "enabled": true,
+      "evaluationFrequency": "PT5M",
+      "windowSize": "PT5M",
+      "criteria": {
+        "allOf": [
+          {
+            "metricName": "MemoryPercentage",
+            "metricNamespace": "Microsoft.Web/sites",
+            "operator": "GreaterThan",
+            "threshold": 85,
+            "timeAggregation": "Average"
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-alerts"
+        ]
+      }
+    },
+    {
+      "name": "VendorVault-High5xxErrors-Azure",
+      "description": "Triggers when 5xx errors exceed 5 in 5 minutes",
+      "severity": 1,
+      "enabled": true,
+      "evaluationFrequency": "PT5M",
+      "windowSize": "PT5M",
+      "criteria": {
+        "allOf": [
+          {
+            "query": "AppServiceConsoleLogs | where TimeGenerated > ago(5m) | where ResultDescription contains '\"statusCode\"' | extend LogData = parse_json(ResultDescription) | extend StatusCode = toint(LogData.metadata.statusCode) | where StatusCode >= 500 | summarize ServerErrors = count()",
+            "timeAggregation": "Count",
+            "operator": "GreaterThan",
+            "threshold": 5
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-alerts"
+        ]
+      }
+    },
+    {
+      "name": "VendorVault-AppServiceDown-Azure",
+      "description": "Triggers when App Service is unavailable",
+      "severity": 0,
+      "enabled": true,
+      "evaluationFrequency": "PT1M",
+      "windowSize": "PT5M",
+      "criteria": {
+        "allOf": [
+          {
+            "metricName": "HealthCheckStatus",
+            "metricNamespace": "Microsoft.Web/sites",
+            "operator": "LessThan",
+            "threshold": 100,
+            "timeAggregation": "Average"
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-critical-alerts"
+        ]
+      }
+    },
+    {
+      "name": "VendorVault-SlowDatabaseQueries-Azure",
+      "description": "Triggers when database query time exceeds 500ms",
+      "severity": 2,
+      "enabled": true,
+      "evaluationFrequency": "PT5M",
+      "windowSize": "PT10M",
+      "criteria": {
+        "allOf": [
+          {
+            "query": "AppServiceConsoleLogs | where TimeGenerated > ago(10m) | where ResultDescription contains 'Database query executed' | extend LogData = parse_json(ResultDescription) | extend Duration = toreal(LogData.metadata.duration) | summarize AvgQueryTime = avg(Duration)",
+            "timeAggregation": "Average",
+            "operator": "GreaterThan",
+            "threshold": 500
+          }
+        ]
+      },
+      "actions": {
+        "actionGroups": [
+          "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/microsoft.insights/actionGroups/vendorvault-alerts"
+        ]
+      }
+    }
+  ],
+  "actionGroups": [
+    {
+      "name": "vendorvault-alerts",
+      "shortName": "VV-Alerts",
+      "enabled": true,
+      "emailReceivers": [
+        {
+          "name": "DevTeam",
+          "emailAddress": "dev-team@vendorvault.com",
+          "useCommonAlertSchema": true
+        }
+      ],
+      "smsReceivers": [
+        {
+          "name": "OnCallEngineer",
+          "countryCode": "91",
+          "phoneNumber": "YOUR_PHONE_NUMBER"
+        }
+      ],
+      "webhookReceivers": [
+        {
+          "name": "SlackWebhook",
+          "serviceUri": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+          "useCommonAlertSchema": true
+        }
+      ]
+    },
+    {
+      "name": "vendorvault-critical-alerts",
+      "shortName": "VV-Critical",
+      "enabled": true,
+      "emailReceivers": [
+        {
+          "name": "DevTeam",
+          "emailAddress": "dev-team@vendorvault.com",
+          "useCommonAlertSchema": true
+        },
+        {
+          "name": "Management",
+          "emailAddress": "management@vendorvault.com",
+          "useCommonAlertSchema": true
+        }
+      ],
+      "smsReceivers": [
+        {
+          "name": "OnCallEngineer",
+          "countryCode": "91",
+          "phoneNumber": "YOUR_PHONE_NUMBER"
+        }
+      ],
+      "webhookReceivers": [
+        {
+          "name": "PagerDuty",
+          "serviceUri": "https://events.pagerduty.com/integration/YOUR_KEY/enqueue",
+          "useCommonAlertSchema": true
+        }
+      ]
+    }
+  ]
+}

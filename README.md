@@ -1640,7 +1640,188 @@ az webapp config ssl bind --ssl-type SNI
 
 ---
 
-## 📚 API Documentation
+## � Logging and Monitoring
+
+VendorVault implements **comprehensive observability** with structured logging, cloud-based monitoring, and proactive alerting for both AWS and Azure deployments.
+
+### Features
+
+✅ **Structured JSON Logging** - Machine-readable logs with consistent format  
+✅ **Correlation IDs** - Trace requests across services with unique request IDs  
+✅ **Log Levels** - DEBUG, INFO, WARN, ERROR, FATAL with contextual information  
+✅ **Performance Metrics** - Track response times, database queries, custom metrics  
+✅ **Error Tracking** - Automatic error capture with stack traces and context  
+✅ **CloudWatch Integration** - AWS ECS logs with metric filters and dashboards  
+✅ **Azure Monitor Integration** - Log Analytics with KQL queries and alerts  
+✅ **Real-time Dashboards** - Visualize application health and performance  
+✅ **Proactive Alerting** - Email/SMS/Slack notifications for critical issues  
+
+### Log Structure
+
+Every log entry includes:
+
+```json
+{
+  "timestamp": "2026-01-01T12:00:00.000Z",
+  "level": "info",
+  "message": "API request received",
+  "metadata": {
+    "requestId": "1735732800000-abc123xyz",
+    "userId": "user_123",
+    "endpoint": "/api/vendors",
+    "method": "POST",
+    "duration": 145,
+    "statusCode": 200,
+    "ip": "203.0.113.42"
+  },
+  "environment": "production",
+  "service": "vendorvault",
+  "version": "1.0.0"
+}
+```
+
+### Quick Start
+
+**Test logging locally:**
+
+```bash
+# Start the application
+npm run dev
+
+# Test logging demo endpoint
+curl http://localhost:3000/api/logging-demo
+
+# View structured logs in console
+# All logs are in JSON format
+```
+
+**AWS CloudWatch:**
+
+```bash
+# View logs in real-time
+aws logs tail /ecs/vendorvault --follow --region ap-south-1
+
+# Query error logs
+aws logs start-query \
+  --log-group-name /ecs/vendorvault \
+  --query-string 'fields @timestamp, message | filter level = "error"' \
+  --start-time $(date -d '1 hour ago' +%s)
+```
+
+**Azure Monitor:**
+
+```bash
+# Stream logs
+az webapp log tail --name vendorvault-app --resource-group vendorvault-rg
+
+# Query with KQL
+az monitor log-analytics query \
+  --workspace vendorvault-logs \
+  --analytics-query "AppServiceConsoleLogs | where ResultDescription contains 'error'"
+```
+
+### Dashboards
+
+**AWS CloudWatch Dashboard:**
+- Error trends (errors, warnings, fatal)
+- API response time (average, p99)
+- HTTP status codes (4xx, 5xx)
+- ECS resource utilization (CPU, memory)
+- Database query performance
+- Recent error logs
+
+**Azure Monitor Dashboard:**
+- Error count by hour
+- Response time trends
+- Request volume by endpoint
+- CPU/Memory utilization
+- Top error messages
+- Slow API requests
+
+### Alerts Configured
+
+**Both AWS and Azure:**
+- High error rate (>10 errors in 5 min)
+- Fatal errors (immediate notification)
+- Slow response time (avg >2s)
+- High CPU utilization (>80%)
+- High memory utilization (>85%)
+- Server errors (>5 5xx errors in 5 min)
+- Unhealthy targets/service down
+- Slow database queries (>500ms)
+
+**Notification channels:**
+- 📧 Email for regular alerts
+- 📱 SMS for critical alerts
+- 💬 Slack/Teams webhooks
+- 🚨 PagerDuty for on-call escalation
+
+### Correlation ID Tracing
+
+Track complete request flow with correlation IDs:
+
+```
+Request ID: 1735732800000-abc123xyz
+12:00:00 - API request received (POST /api/vendors)
+12:00:01 - Database query started
+12:00:02 - Database query completed (150ms)
+12:00:02 - S3 upload started
+12:00:03 - S3 upload completed (800ms)
+12:00:03 - Response sent (total: 3000ms)
+```
+
+### Key Metrics Tracked
+
+| Category | Metrics | Purpose |
+|----------|---------|---------|
+| **Application** | Error count, warning count, fatal errors | Health monitoring |
+| **Performance** | Response time (avg, p95, p99), throughput | User experience |
+| **Infrastructure** | CPU, memory, disk, network | Resource optimization |
+| **Database** | Query duration, connection pool | Database performance |
+| **Business** | Request count, unique users, endpoint usage | Analytics |
+
+### Log Retention & Cost
+
+| Environment | Retention | Archive | Monthly Cost |
+|-------------|-----------|---------|--------------|
+| **Development** | 7 days | No | ~$2 |
+| **Staging** | 14 days | No | ~$5 |
+| **Production** | 30 days | S3/Blob (1 year) | ~$17 (AWS), ~$43 (Azure) |
+
+### 📖 Complete Logging & Monitoring Guide
+
+**See [LOGGING_MONITORING.md](./LOGGING_MONITORING.md)** for comprehensive instructions:
+- Structured logging implementation
+- AWS CloudWatch setup (log groups, metric filters, dashboards, alarms)
+- Azure Monitor setup (diagnostic settings, KQL queries, alerts)
+- Log analysis and query examples
+- Dashboard creation and customization
+- Alert configuration and notification channels
+- Best practices and security considerations
+- Troubleshooting guide
+- Cost optimization strategies
+- Reflection on observability
+
+### Configuration Files
+
+**AWS CloudWatch:**
+- [deployment/monitoring/aws-ecs-task-logging.json](deployment/monitoring/aws-ecs-task-logging.json) - ECS task definition
+- [deployment/monitoring/cloudwatch-metric-filters.json](deployment/monitoring/cloudwatch-metric-filters.json) - Metric filters
+- [deployment/monitoring/cloudwatch-dashboard.json](deployment/monitoring/cloudwatch-dashboard.json) - Dashboard config
+- [deployment/monitoring/cloudwatch-alarms.json](deployment/monitoring/cloudwatch-alarms.json) - Alarm definitions
+
+**Azure Monitor:**
+- [deployment/monitoring/azure-app-service-logging.json](deployment/monitoring/azure-app-service-logging.json) - Diagnostic settings
+- [deployment/monitoring/azure-monitor-queries.kql](deployment/monitoring/azure-monitor-queries.kql) - KQL queries (15 examples)
+- [deployment/monitoring/azure-alerts.json](deployment/monitoring/azure-alerts.json) - Alert rules
+
+**Application:**
+- [vendorvault/lib/logger.ts](vendorvault/lib/logger.ts) - Logger utility
+- [vendorvault/app/api/logging-demo/route.ts](vendorvault/app/api/logging-demo/route.ts) - Demo endpoint
+
+---
+
+## �📚 API Documentation
 
 ### Base URL
 - Development: `http://localhost:3000/api`

@@ -1,0 +1,79 @@
+{
+  "name": "vendorvault",
+  "location": "Central India",
+  "properties": {
+    "appInsightsInstrumentationKey": "YOUR_INSTRUMENTATION_KEY",
+    "logAnalyticsWorkspaceId": "YOUR_WORKSPACE_ID",
+    "diagnosticSettings": {
+      "name": "vendorvault-diagnostics",
+      "properties": {
+        "workspaceId": "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/vendorvault-rg/providers/Microsoft.OperationalInsights/workspaces/vendorvault-logs",
+        "logs": [
+          {
+            "category": "AppServiceConsoleLogs",
+            "enabled": true,
+            "retentionPolicy": {
+              "enabled": true,
+              "days": 30
+            }
+          },
+          {
+            "category": "AppServiceHTTPLogs",
+            "enabled": true,
+            "retentionPolicy": {
+              "enabled": true,
+              "days": 30
+            }
+          },
+          {
+            "category": "AppServiceAppLogs",
+            "enabled": true,
+            "retentionPolicy": {
+              "enabled": true,
+              "days": 30
+            }
+          },
+          {
+            "category": "AppServicePlatformLogs",
+            "enabled": true,
+            "retentionPolicy": {
+              "enabled": true,
+              "days": 14
+            }
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true,
+            "retentionPolicy": {
+              "enabled": true,
+              "days": 30
+            }
+          }
+        ]
+      }
+    },
+    "applicationLogging": {
+      "fileSystem": {
+        "level": "Information"
+      },
+      "azureBlobStorage": {
+        "level": "Warning",
+        "retentionInDays": 90
+      }
+    },
+    "httpLogging": {
+      "fileSystem": {
+        "retentionInMb": 100,
+        "enabled": true
+      }
+    },
+    "detailedErrorMessages": {
+      "enabled": true
+    },
+    "failedRequestsTracing": {
+      "enabled": true
+    }
+  }
+}
