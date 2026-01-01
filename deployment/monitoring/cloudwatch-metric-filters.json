@@ -1,0 +1,95 @@
+{
+  "filters": [
+    {
+      "filterName": "ErrorLogFilter",
+      "filterPattern": "{ $.level = \"error\" }",
+      "metricTransformations": [
+        {
+          "metricName": "ErrorCount",
+          "metricNamespace": "VendorVault/Application",
+          "metricValue": "1",
+          "defaultValue": 0,
+          "unit": "Count"
+        }
+      ]
+    },
+    {
+      "filterName": "FatalLogFilter",
+      "filterPattern": "{ $.level = \"fatal\" }",
+      "metricTransformations": [
+        {
+          "metricName": "FatalErrorCount",
+          "metricNamespace": "VendorVault/Application",
+          "metricValue": "1",
+          "defaultValue": 0,
+          "unit": "Count"
+        }
+      ]
+    },
+    {
+      "filterName": "WarnLogFilter",
+      "filterPattern": "{ $.level = \"warn\" }",
+      "metricTransformations": [
+        {
+          "metricName": "WarningCount",
+          "metricNamespace": "VendorVault/Application",
+          "metricValue": "1",
+          "defaultValue": 0,
+          "unit": "Count"
+        }
+      ]
+    },
+    {
+      "filterName": "ApiResponseTimeFilter",
+      "filterPattern": "{ $.metadata.duration EXISTS }",
+      "metricTransformations": [
+        {
+          "metricName": "ApiResponseTime",
+          "metricNamespace": "VendorVault/Performance",
+          "metricValue": "$.metadata.duration",
+          "unit": "Milliseconds"
+        }
+      ]
+    },
+    {
+      "filterName": "Api4xxErrorsFilter",
+      "filterPattern": "{ ($.metadata.statusCode >= 400) && ($.metadata.statusCode < 500) }",
+      "metricTransformations": [
+        {
+          "metricName": "ClientErrors",
+          "metricNamespace": "VendorVault/Application",
+          "metricValue": "1",
+          "defaultValue": 0,
+          "unit": "Count"
+        }
+      ]
+    },
+    {
+      "filterName": "Api5xxErrorsFilter",
+      "filterPattern": "{ $.metadata.statusCode >= 500 }",
+      "metricTransformations": [
+        {
+          "metricName": "ServerErrors",
+          "metricNamespace": "VendorVault/Application",
+          "metricValue": "1",
+          "defaultValue": 0,
+          "unit": "Count"
+        }
+      ]
+    },
+    {
+      "filterName": "DatabaseQueryTimeFilter",
+      "filterPattern": "{ $.message = \"Database query executed\" }",
+      "metricTransformations": [
+        {
+          "metricName": "DatabaseQueryDuration",
+          "metricNamespace": "VendorVault/Database",
+          "metricValue": "$.metadata.duration",
+          "unit": "Milliseconds"
+        }
+      ]
+    }
+  ],
+  "logGroup": "/ecs/vendorvault",
+  "description": "Metric filters for VendorVault application logs in CloudWatch"
+}
