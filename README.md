@@ -1553,6 +1553,93 @@ Ensure all production environment variables are set via Secrets Manager/Key Vaul
 
 ---
 
+## 🌐 Domain & SSL Configuration
+
+VendorVault supports custom domain configuration with automatic SSL/TLS certificates for secure HTTPS connections.
+
+### 🔒 SSL/TLS Features
+
+✅ **Free SSL Certificates** via AWS ACM or Azure App Service  
+✅ **Automatic Certificate Renewal** (no manual intervention)  
+✅ **HTTPS Enforcement** with automatic HTTP redirects  
+✅ **TLS 1.2/1.3 Support** with strong cipher suites  
+✅ **Security Headers** (HSTS, CSP, X-Frame-Options)  
+✅ **Multi-domain Support** (root, www, subdomains)  
+
+### Quick Setup Overview
+
+#### AWS Route 53 + ACM
+```bash
+# 1. Create hosted zone
+aws route53 create-hosted-zone --name vendorvault.com
+
+# 2. Request certificate (with DNS validation)
+aws acm request-certificate \
+  --domain-name vendorvault.com \
+  --subject-alternative-names '*.vendorvault.com' \
+  --validation-method DNS
+
+# 3. Create DNS records and attach to ALB
+```
+
+#### Azure DNS + App Service
+```bash
+# 1. Create DNS zone
+az network dns zone create --name vendorvault.com --resource-group vendorvault-rg
+
+# 2. Add custom domain
+az webapp config hostname add --hostname vendorvault.com
+
+# 3. Create and bind FREE managed certificate
+az webapp config ssl create --hostname vendorvault.com
+az webapp config ssl bind --ssl-type SNI
+```
+
+### Security Configuration
+
+**HTTPS redirects and security headers configured in [next.config.ts](vendorvault/next.config.ts):**
+- Strict-Transport-Security (HSTS)
+- Content-Security-Policy (CSP)
+- X-Frame-Options
+- X-Content-Type-Options
+- Referrer-Policy
+- Permissions-Policy
+
+### 📖 Complete Domain & SSL Guide
+
+**See [DOMAIN_SSL_SETUP.md](./DOMAIN_SSL_SETUP.md)** for comprehensive instructions:
+- Domain registration and DNS configuration
+- AWS Route 53 hosted zone setup
+- Azure DNS zone configuration
+- SSL certificate request and validation
+- HTTPS enforcement and redirects
+- Certificate renewal automation
+- Multi-environment domain strategy
+- Security best practices
+- Troubleshooting guide
+- Cost breakdown
+
+### DNS Records Configuration
+
+**Typical production setup:**
+
+| Record Type | Name | Value | Purpose |
+|-------------|------|-------|---------|
+| A | @ | Load Balancer IP | Root domain |
+| CNAME | www | vendorvault.com | WWW subdomain |
+| CNAME | api | vendorvault.com | API endpoints |
+| CNAME | staging | staging-alb.aws.com | Staging environment |
+| TXT | asuid | verification-id | Azure verification |
+
+### Verification
+
+✅ Visit `https://vendorvault.com` - Should show 🔒 padlock  
+✅ Test redirect: `http://vendorvault.com` → `https://vendorvault.com`  
+✅ SSL Labs test: Grade A or A+  
+✅ Security headers check: All critical headers present  
+
+---
+
 ## 📚 API Documentation
 
 ### Base URL
