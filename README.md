@@ -1,4 +1,79 @@
-﻿# VendorVault
+﻿
+## 🚦 GitHub Actions CI Pipeline
+
+This project uses a robust GitHub Actions CI pipeline to automate linting, testing, building, and deployment for every push and pull request.
+
+### 📄 Workflow File
+The workflow is defined in `.github/workflows/ci.yml`.
+
+### 🛠️ Pipeline Stages
+| Stage  | Purpose                        | Example Action           |
+|--------|--------------------------------|-------------------------|
+| Lint   | Check code style/quality       | Run ESLint              |
+| Test   | Validate logic/components      | Run Jest + RTL tests    |
+| Build  | Ensure app builds correctly    | Run npm run build       |
+| Deploy | Push code to hosting           | Deploy to AWS/Azure     |
+
+Each stage runs in isolation to catch errors early and maintain a consistent codebase before merging to main.
+
+### ⚡ Workflow Triggers
+- Runs on every push or pull request to `main` and `develop` branches.
+- Can be triggered manually via the Actions tab.
+
+### 🔑 Secrets & Environment Variables
+- Credentials are stored securely in GitHub Secrets (Settings → Secrets and Variables → Actions).
+- Example secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AZURE_WEBAPP_PUBLISH_PROFILE`.
+- Secrets are referenced in the workflow using `${{ secrets.SECRET_NAME }}`.
+
+### 🚀 Example Workflow Steps
+```yaml
+name: CI Pipeline
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint
+      - name: Run Unit Tests
+        run: npm test -- --coverage
+      - name: Build Next.js app
+        run: npm run build
+      - name: Deploy (Example for AWS)
+        if: github.ref == 'refs/heads/main'
+        run: echo "Deploying application..."
+```
+
+### 🏎️ Caching & Concurrency
+- Uses `cache: 'npm'` to speed up installs.
+- Concurrency settings prevent overlapping runs on the same branch.
+
+### ✅ Results & Validation
+- View pipeline status in the GitHub Actions tab.
+- Each stage must pass for code to be merged or deployed.
+
+### 📸 Example Success Screenshot
+> ![GitHub Actions Success Example](./docs/ci-success-screenshot.png)
+
+### 💡 Reflections & Best Practices
+- **Build caching** speeds up CI runs.
+- **Concurrency** prevents duplicate deployments.
+- **Secrets** are never hardcoded—always use GitHub Secrets.
+- **Automated CI** ensures every change is tested and production-ready.
+# VendorVault
 
 Railway Vendor License Management System - A comprehensive, production-ready platform for managing vendor licenses and applications with optimized database transactions, query performance, and data integrity.
 
