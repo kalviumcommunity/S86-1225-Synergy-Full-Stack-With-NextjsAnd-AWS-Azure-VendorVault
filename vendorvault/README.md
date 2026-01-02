@@ -352,129 +352,15 @@ Unit tests validate individual functions and components in isolation, preventing
                  functions: 80,
                  lines: 80,
                  statements: 80,
-             },
-         },
-         transform: {
-             '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
-         },
-     };
-     module.exports = createJestConfig(customJestConfig);
-     ```
-3. **Babel config:** Add `babel.config.js`:
-     ```js
-     module.exports = {
-         presets: [
-             ['@babel/preset-env', { targets: { node: 'current' } }],
-             '@babel/preset-typescript',
-             '@babel/preset-react',
-         ],
-     };
-     ```
-4. **RTL matchers:** Add `vendorvault/jest.setup.js`:
-     ```js
-     import '@testing-library/jest-dom';
-     ```
+                This project uses **Jest** and **React Testing Library (RTL)** for unit and integration testing.
 
-#### Sample Tests
-**Function:**
-```ts
-// vendorvault/utils/sum.ts
-export function sum(a: number, b: number): number {
-    return a + b;
-}
-```
-**Test:**
-```ts
-import { sum } from '../utils/sum';
-test('adds two numbers', () => {
-    expect(sum(2, 3)).toBe(5);
-});
-```
-**Component:**
-```tsx
-// vendorvault/components/Button.tsx
-export default function Button({ label, onClick }: { label: string; onClick: () => void }) {
-    return <button onClick={onClick}>{label}</button>;
-}
-```
-**Test:**
-```tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import Button from '../components/Button';
-test('renders button and responds to click', () => {
-    const handleClick = jest.fn();
-    render(<Button label="Click Me" onClick={handleClick} />);
-    const button = screen.getByText('Click Me');
-    fireEvent.click(button);
-    expect(handleClick).toHaveBeenCalledTimes(1);
-});
-```
+                - All configuration and sample tests are located in the project files:
+                  - `jest.config.js`, `babel.config.js`, `vendorvault/jest.setup.js`
+                  - Sample logic test: `vendorvault/utils/math.ts`, `vendorvault/__tests__/math.test.ts`
+                  - Sample component test: `vendorvault/components/Button.tsx`, `vendorvault/__tests__/Button.test.ts`
+                  - CI example: `.github/workflows/ci.yml`
 
-#### Running & Coverage
-```bash
-npm test                 # Run all tests
-npm run test:watch       # Watch mode
-npm run test:coverage    # Coverage report
-```
-Sample output:
-```
-PASS  vendorvault/__tests__/Button.test.tsx
-PASS  vendorvault/__tests__/sum.test.ts
---------------------------
-File           | % Stmts | % Branch | % Funcs | % Lines |
----------------------------------------------------------
-All files      |   85.00 |    80.00 |   90.00 |   85.00 |
-```
-
-#### CI Integration
-In `.github/workflows/ci.yml`:
-```yaml
-- name: Run Unit Tests
-    run: npm test -- --coverage
-```
-Builds will fail if coverage drops below 80%.
-
-#### Reflections & Best Practices
-- **Test coverage** is your safety net—automate, measure, and iterate.
-- Strive for 80%+ coverage, but focus on meaningful tests.
-- Fill gaps with integration and e2e tests for full confidence.
-- Unit tests = fast feedback, fewer bugs, safer deploys.
-
----
-
-## 🌐 Deployment
-
-### Vercel (Recommended for Next.js)
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
-
-**Important**: Ensure your cloud database allows Vercel's IP ranges
-
-### AWS (EC2 + RDS)
-1. Provision EC2 instance
-2. Deploy application with PM2 or Docker
-3. Connect to RDS instance in same VPC
-4. Use Application Load Balancer for HTTPS
-
-### Azure (App Service + Azure Database)
-1. Create App Service (Node.js)
-2. Deploy via GitHub Actions or Azure DevOps
-3. Connect to Azure Database for PostgreSQL
-4. Enable Application Insights for monitoring
-
-### Environment Variables in Production
-Ensure all production environment variables are set:
-- `DATABASE_URL` with cloud database endpoint
-- `NEXTAUTH_URL` with production domain
-- SSL certificates configured
-- S3/Blob storage credentials
-- Email service credentials
-
----
-
-## 📚 API Documentation
-
+                See comments in those files for setup, usage, and best practices.
 ### Base URL
 - Development: `http://localhost:3000/api`
 - Production: `https://your-domain.com/api`
