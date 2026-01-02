@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     // Ensure container exists
     await containerClient.createIfNotExists({
-      access: "private",
+      access: undefined, // 'private' is not valid, use undefined for private container
     });
 
     // Get blob client

@@ -14,7 +14,7 @@ interface CreateLicenseInput {
   vendorId: number;
   licenseNumber: string;
   isRenewal?: boolean;
-  previousLicenseId?: number;
+  previousLicenseId?: number | null;
 }
 
 interface ApproveLicenseInput {

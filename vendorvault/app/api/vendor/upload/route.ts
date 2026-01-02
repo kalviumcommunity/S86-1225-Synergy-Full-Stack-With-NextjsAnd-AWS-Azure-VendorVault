@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
+import { successResponse, ApiErrors } from "@/lib/api-response";
 import { getUploadConfig, saveBase64File } from "@/lib/file-storage";
 // AWS S3 functions are kept for future use but not actively used
 // import { generatePresignedUploadUrl, validateFile, getFileUrl } from "@/lib/s3";
@@ -15,8 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { filename, fileType, fileSize, vendorId, documentType, base64Data } =
-      body;
+    const { filename, fileType, vendorId, documentType, base64Data } = body;
 
     // Validate required fields
     if (!filename || !fileType) {
@@ -74,7 +73,7 @@ export async function POST(request: NextRequest) {
     console.error("Error generating upload config:", error);
 
     if (error instanceof Error) {
-      return errorResponse(error.message, "UPLOAD_CONFIG_ERROR", 500);
+      return ApiErrors.INTERNAL_ERROR(error.message);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to generate upload configuration");

@@ -5,16 +5,23 @@
  */
 
 import { NextRequest } from "next/server";
-import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
+import { successResponse, ApiErrors } from "@/lib/api-response";
 import { createVendor } from "@/services/vendor.services";
-import { vendorApplySchema } from "@/lib/schemas/vendorSchema";
+import {
+  vendorApplySchema,
+  type VendorApplyInput,
+} from "@/lib/schemas/vendorSchema";
 import { validateRequestData } from "@/lib/validation";
 import redis from "@/lib/redis";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
     // Validate request data with Zod
-    const validation = await validateRequestData(request, vendorApplySchema);
+    const validation = await validateRequestData<VendorApplyInput>(
+      request,
+      vendorApplySchema
+    );
     if (!validation.success) {
       return validation.response;
     }
@@ -144,7 +151,7 @@ export async function POST(request: NextRequest) {
       if (error.message.includes("role")) {
         return ApiErrors.FORBIDDEN(error.message);
       }
-      return errorResponse(error.message, "APPLICATION_ERROR", 400);
+      return ApiErrors.BAD_REQUEST(error.message);
     }
 
     return ApiErrors.INTERNAL_ERROR("Failed to process vendor application");

@@ -14,6 +14,7 @@ import {
   calculatePagination,
 } from "@/lib/api-response";
 import { licenseCreateSchema } from "@/lib/schemas/licenseSchema";
+import type { LicenseCreateInput } from "@/lib/schemas/licenseSchema";
 import { validateRequestData } from "@/lib/validation";
 import { createLicense } from "@/services/license.service";
 import { prisma } from "@/lib/prisma";
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest) {
       return validation.response;
     }
 
-    const body = validation.data;
+    const body = validation.data as LicenseCreateInput;
 
     // Create license
     const license = await createLicense({

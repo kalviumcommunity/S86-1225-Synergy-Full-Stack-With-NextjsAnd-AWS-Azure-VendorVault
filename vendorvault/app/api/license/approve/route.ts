@@ -8,6 +8,7 @@ import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { approveLicense } from "@/services/license.service";
 import { licenseApproveSchema } from "@/lib/schemas/licenseSchema";
+import type { LicenseApproveInput } from "@/lib/schemas/licenseSchema";
 import { validateRequestData } from "@/lib/validation";
 import redis from "@/lib/redis";
 import { generateQRCode } from "@/lib/qr";
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       return validation.response;
     }
 
-    const body = validation.data;
+    const body = validation.data as LicenseApproveInput;
 
     // Approve license
     const license = await approveLicense({
@@ -37,7 +38,9 @@ export async function POST(request: NextRequest) {
     // Generate QR code for the approved license
     let qrCodeUrl = "";
     try {
-      qrCodeUrl = await generateQRCode(license.licenseNumber);
+      qrCodeUrl = license.licenseNumber
+        ? await generateQRCode(license.licenseNumber)
+        : "";
       console.log("✅ QR Code generated:", qrCodeUrl);
     } catch (qrError) {
       console.error("⚠️ QR code generation failed:", qrError);
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
       if (fullLicense?.vendor?.user?.email) {
         const emailTemplate = licenseApprovalTemplate(
           fullLicense.vendor.user.name,
-          license.licenseNumber,
+          license.licenseNumber ?? "",
           qrCodeUrl,
           license.expiresAt?.toLocaleDateString() || "N/A"
         );

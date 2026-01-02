@@ -9,6 +9,7 @@ import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { loginSchema } from "@/lib/schemas/authSchema";
+import type { LoginInput } from "@/lib/schemas/authSchema";
 import { validateRequestData } from "@/lib/validation";
 
 /**
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       return validation.response;
     }
 
-    const body = validation.data;
+    const body = validation.data as LoginInput;
 
     // Find user by email
     const user = await prisma.user.findUnique({
