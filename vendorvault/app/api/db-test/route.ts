@@ -31,7 +31,12 @@ export async function GET() {
             message: prismaTest.success
               ? "Connection successful"
               : "Connection failed",
-            error: prismaTest.error?.message || null,
+            error:
+              typeof prismaTest.error === "object" &&
+              prismaTest.error !== null &&
+              "message" in prismaTest.error
+                ? (prismaTest.error as { message?: string }).message
+                : null,
           },
           raw: {
             status: rawTest.success ? "pass" : "fail",
@@ -39,14 +44,24 @@ export async function GET() {
               ? "Connection successful"
               : "Connection failed",
             serverTime: rawTest.result?.server_time || null,
-            error: rawTest.error?.message || null,
+            error:
+              typeof rawTest.error === "object" &&
+              rawTest.error !== null &&
+              "message" in rawTest.error
+                ? (rawTest.error as { message?: string }).message
+                : null,
           },
           health: {
             status: healthCheck.success ? "pass" : "fail",
             message: healthCheck.success
               ? "Database healthy"
               : "Health check failed",
-            error: healthCheck.error?.message || null,
+            error:
+              typeof healthCheck.error === "object" &&
+              healthCheck.error !== null &&
+              "message" in healthCheck.error
+                ? (healthCheck.error as { message?: string }).message
+                : null,
           },
         },
         environment: {

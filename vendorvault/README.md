@@ -313,11 +313,132 @@ Use the included Postman collections:
 - `postman-jwt-auth-collection.json` - Authentication flows
 
 ### Unit Tests
+
+#### Unit Testing with Jest & React Testing Library
+
+This project uses **Jest** and **React Testing Library (RTL)** to ensure robust, automated validation of both logic and UI components.
+
+**Why Unit Testing?**
+Unit tests validate individual functions and components in isolation, preventing regressions and building confidence before deployment. They form the base of the testing pyramid:
+
+| Test Type         | Scope                        | Tool(s)                        |
+|-------------------|------------------------------|---------------------------------|
+| Unit Tests        | Functions/components         | Jest, RTL                      |
+| Integration Tests | Combined modules             | RTL, Mock Service Worker        |
+| End-to-End Tests  | Full workflow in browser     | Cypress, Playwright             |
+
+#### Setup Steps
+1. **Install dependencies:**
+     ```bash
+     npm install --save-dev jest @testing-library/react @testing-library/jest-dom @testing-library/user-event ts-jest @types/jest
+     npm install --save-dev babel-jest @babel/preset-env @babel/preset-react @babel/preset-typescript
+     ```
+2. **Jest config:** Add `jest.config.js` in the project root:
+     ```js
+     const nextJest = require('next/jest');
+     const createJestConfig = nextJest({ dir: './vendorvault' });
+     const customJestConfig = {
+         setupFilesAfterEnv: ['<rootDir>/vendorvault/jest.setup.js'],
+         testEnvironment: 'jsdom',
+         collectCoverage: true,
+         collectCoverageFrom: [
+             'vendorvault/**/*.{js,jsx,ts,tsx}',
+             '!vendorvault/**/*.test.{js,jsx,ts,tsx}',
+             '!vendorvault/app/pages/_*.{js,jsx,ts,tsx}'
+         ],
+         coverageThreshold: {
+             global: {
+                 branches: 80,
+                 functions: 80,
+                 lines: 80,
+                 statements: 80,
+             },
+         },
+         transform: {
+             '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
+         },
+     };
+     module.exports = createJestConfig(customJestConfig);
+     ```
+3. **Babel config:** Add `babel.config.js`:
+     ```js
+     module.exports = {
+         presets: [
+             ['@babel/preset-env', { targets: { node: 'current' } }],
+             '@babel/preset-typescript',
+             '@babel/preset-react',
+         ],
+     };
+     ```
+4. **RTL matchers:** Add `vendorvault/jest.setup.js`:
+     ```js
+     import '@testing-library/jest-dom';
+     ```
+
+#### Sample Tests
+**Function:**
+```ts
+// vendorvault/utils/sum.ts
+export function sum(a: number, b: number): number {
+    return a + b;
+}
+```
+**Test:**
+```ts
+import { sum } from '../utils/sum';
+test('adds two numbers', () => {
+    expect(sum(2, 3)).toBe(5);
+});
+```
+**Component:**
+```tsx
+// vendorvault/components/Button.tsx
+export default function Button({ label, onClick }: { label: string; onClick: () => void }) {
+    return <button onClick={onClick}>{label}</button>;
+}
+```
+**Test:**
+```tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import Button from '../components/Button';
+test('renders button and responds to click', () => {
+    const handleClick = jest.fn();
+    render(<Button label="Click Me" onClick={handleClick} />);
+    const button = screen.getByText('Click Me');
+    fireEvent.click(button);
+    expect(handleClick).toHaveBeenCalledTimes(1);
+});
+```
+
+#### Running & Coverage
 ```bash
 npm test                 # Run all tests
 npm run test:watch       # Watch mode
 npm run test:coverage    # Coverage report
 ```
+Sample output:
+```
+PASS  vendorvault/__tests__/Button.test.tsx
+PASS  vendorvault/__tests__/sum.test.ts
+--------------------------
+File           | % Stmts | % Branch | % Funcs | % Lines |
+---------------------------------------------------------
+All files      |   85.00 |    80.00 |   90.00 |   85.00 |
+```
+
+#### CI Integration
+In `.github/workflows/ci.yml`:
+```yaml
+- name: Run Unit Tests
+    run: npm test -- --coverage
+```
+Builds will fail if coverage drops below 80%.
+
+#### Reflections & Best Practices
+- **Test coverage** is your safety net—automate, measure, and iterate.
+- Strive for 80%+ coverage, but focus on meaningful tests.
+- Fill gaps with integration and e2e tests for full confidence.
+- Unit tests = fast feedback, fewer bugs, safer deploys.
 
 ---
 

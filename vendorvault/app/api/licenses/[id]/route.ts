@@ -10,6 +10,7 @@ import { NextRequest } from "next/server";
 import { successResponse, errorResponse, ApiErrors } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import { licenseUpdateSchema } from "@/lib/schemas/licenseSchema";
+import type { LicenseUpdateInput } from "@/lib/schemas/licenseSchema";
 import { validateRequestData } from "@/lib/validation";
 
 interface RouteParams {
@@ -86,7 +87,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return validation.response;
     }
 
-    const body = validation.data;
+    const body = validation.data as LicenseUpdateInput;
 
     // Check if license exists
     const existingLicense = await prisma.license.findUnique({

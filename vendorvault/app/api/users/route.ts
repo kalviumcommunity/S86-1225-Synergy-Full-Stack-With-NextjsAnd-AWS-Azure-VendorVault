@@ -5,7 +5,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { successResponse, errorResponse } from "@/lib/api-response";
+import { successResponse, ApiErrors } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import redis from "@/lib/redis";
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const userRole = request.headers.get("x-user-role");
 
     if (!userId) {
-      return errorResponse("User ID not found in request", 401);
+      return ApiErrors.UNAUTHORIZED("User ID not found in request");
     }
 
     // Check Redis cache first
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      return errorResponse("User not found", 404);
+      return ApiErrors.NOT_FOUND("User");
     }
 
     const responseData = {
@@ -101,9 +101,8 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("❌ Error in GET /api/users:", error);
-    return errorResponse(
-      error instanceof Error ? error.message : "Failed to fetch user data",
-      500
+    return ApiErrors.INTERNAL_ERROR(
+      error instanceof Error ? error.message : "Failed to fetch user data"
     );
   }
 }

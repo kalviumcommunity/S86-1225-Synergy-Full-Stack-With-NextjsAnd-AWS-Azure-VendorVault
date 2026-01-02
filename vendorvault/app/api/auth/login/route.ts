@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { errorResponse, ApiErrors } from "@/lib/api-response";
+import { ApiErrors } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import {
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     console.error("Error during user authentication:", error);
 
     if (error instanceof Error) {
-      return errorResponse(error.message, "AUTH_ERROR", 500);
+      return ApiErrors.INTERNAL_ERROR(error.message);
     }
 
     return ApiErrors.INTERNAL_ERROR("Authentication failed. Please try again.");
