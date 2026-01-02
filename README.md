@@ -1393,11 +1393,131 @@ Use the included Postman collections:
 - `postman-jwt-auth-collection.json` - Authentication flows
 
 ### Unit Tests
+
+#### Unit & Integration Testing with Jest & React Testing Library
+
+This project uses **Jest** and **React Testing Library (RTL)** for unit and integration tests, ensuring robust validation of both logic and API routes.
+
+**Why Unit & Integration Testing?**
+Unit tests verify the smallest units (functions, components, hooks) in isolation. Integration tests check how modules interact, especially for API routes. Both help catch bugs early and prevent regressions.
+
+| Test Type         | Goal                              | Tools Used                  |
+|-------------------|-----------------------------------|-----------------------------|
+| Unit Tests        | Validate logic/UI in isolation    | Jest, RTL                   |
+| Integration Tests | Verify module/API interactions    | Jest + Mock APIs            |
+| E2E Tests         | User journeys in browser          | Cypress, Playwright         |
+
+#### Setup Steps
+1. **Install dependencies:**
+   ```bash
+   npm install --save-dev jest @testing-library/react @testing-library/jest-dom @testing-library/user-event ts-jest @types/jest
+   npm install --save-dev babel-jest @babel/preset-env @babel/preset-react @babel/preset-typescript
+   ```
+2. **Jest config:** Add `jest.config.js` in the project root:
+   ```js
+   const nextJest = require('next/jest');
+   const createJestConfig = nextJest({ dir: './vendorvault' });
+   const customJestConfig = {
+     setupFilesAfterEnv: ['<rootDir>/vendorvault/jest.setup.js'],
+     testEnvironment: 'jsdom',
+     collectCoverage: true,
+     collectCoverageFrom: [
+       'vendorvault/**/*.{js,jsx,ts,tsx}',
+       '!vendorvault/**/*.test.{js,jsx,ts,tsx}',
+       '!vendorvault/app/pages/_*.{js,jsx,ts,tsx}'
+     ],
+     coverageThreshold: {
+       global: {
+         branches: 80,
+         functions: 80,
+         lines: 80,
+         statements: 80,
+       },
+     },
+     transform: {
+       '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
+     },
+   };
+   module.exports = createJestConfig(customJestConfig);
+   ```
+3. **Babel config:** Add `babel.config.js`:
+   ```js
+   module.exports = {
+     presets: [
+       ['@babel/preset-env', { targets: { node: 'current' } }],
+       '@babel/preset-typescript',
+       '@babel/preset-react',
+     ],
+   };
+   ```
+4. **RTL matchers:** Add `vendorvault/jest.setup.js`:
+   ```js
+   import '@testing-library/jest-dom';
+   ```
+
+#### Sample Tests
+**Logic Test:**
+```ts
+// vendorvault/utils/math.ts
+export const add = (a: number, b: number) => a + b;
+```
+**Test:**
+```ts
+import { add } from '../utils/math';
+test('adds two numbers correctly', () => {
+  expect(add(2, 3)).toBe(5);
+});
+```
+**Component Test:**
+```tsx
+// vendorvault/components/Button.tsx
+export default function Button({ label, onClick }: { label: string; onClick: () => void }) {
+  return <button onClick={onClick}>{label}</button>;
+}
+```
+**Test:**
+```tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import Button from '../components/Button';
+test('renders and triggers click event', () => {
+  const handleClick = jest.fn();
+  render(<Button label="Click Me" onClick={handleClick} />);
+  const button = screen.getByText('Click Me');
+  fireEvent.click(button);
+  expect(handleClick).toHaveBeenCalledTimes(1);
+});
+```
+
+#### Running & Coverage
 ```bash
 npm test                 # Run all tests
 npm run test:watch       # Watch mode
 npm run test:coverage    # Coverage report
 ```
+Sample output:
+```
+PASS  vendorvault/__tests__/Button.test.tsx
+PASS  vendorvault/__tests__/math.test.ts
+--------------------------
+File           | % Stmts | % Branch | % Funcs | % Lines |
+---------------------------------------------------------
+All files      |   85.00 |    80.00 |   90.00 |   85.00 |
+```
+
+#### CI Integration
+In `.github/workflows/ci.yml`:
+```yaml
+- name: Run Unit Tests
+  run: npm test -- --coverage
+```
+Builds will fail if coverage drops below 80%.
+
+#### Reflections & Best Practices
+- **Unit tests** catch bugs early and prevent regressions.
+- **Integration tests** ensure modules and API routes work together.
+- Aim for 80%+ coverage, but focus on meaningful, maintainable tests.
+- Fill gaps with integration and E2E tests for full confidence.
+- Automated testing = reliability, maintainability, and safer deploys.
 
 ---
 
