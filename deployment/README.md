@@ -22,15 +22,27 @@ This directory contains all deployment configurations and documentation for Vend
 | `CHECKLIST.md` | 150+ item deployment checklist |
 | `SCREENSHOTS.md` | Screenshot documentation guide and template |
 | `COMPLETION_SUMMARY.md` | Assignment completion summary |
+| **`CI_CD_INDEX.md`** | **CI/CD documentation hub (START HERE)** |
+| `CI_CD_SETUP.md` | Detailed CI/CD pipeline setup guide |
+| `CI_CD_QUICK_REFERENCE.md` | CI/CD quick reference cheat sheet |
+| `CI_CD_COMPLETION_SUMMARY.md` | CI/CD assignment completion report |
+| `CI_CD_VISUAL_GUIDE.md` | Visual workflow diagrams |
 | `README.md` | This file |
 
 ## 🚀 Quick Links
 
 - **Main Deployment Guide:** [../DEPLOYMENT.md](../DEPLOYMENT.md)
 - **Quick Start:** [../QUICK_START.md](../QUICK_START.md)
+- **CI/CD Documentation:** [CI_CD_INDEX.md](./CI_CD_INDEX.md) ⭐ **NEW!**
 - **CI/CD Workflows:** [../.github/workflows/](../.github/workflows/)
 
 ## 📖 Usage
+
+### For CI/CD Pipeline (GitHub Actions):
+1. Review [CI_CD_INDEX.md](./CI_CD_INDEX.md) for complete documentation
+2. Configure GitHub Secrets (see [CI_CD_SETUP.md](./CI_CD_SETUP.md))
+3. Workflow automatically runs on push/PR to main/develop branches
+4. Use [CI_CD_QUICK_REFERENCE.md](./CI_CD_QUICK_REFERENCE.md) for daily commands
 
 ### For AWS ECS Deployment:
 1. Review and update `ecs-task-definition.json` with your account ID
