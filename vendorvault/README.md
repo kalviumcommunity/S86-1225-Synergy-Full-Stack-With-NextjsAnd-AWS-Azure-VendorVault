@@ -21,8 +21,9 @@ Railway Vendor License Management System - A comprehensive, production-ready pla
 - [Getting Started](#-getting-started)
 - [Database Configuration](#-database-configuration)
 - [Testing](#-testing)
-- [Deployment](#-deployment)
+- [CI/CD Pipeline](#-cicd-pipeline)
 - [API Documentation](#-api-documentation)
+- [Deployment](#-deployment)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -75,7 +76,7 @@ Railway Vendor License Management System - A comprehensive, production-ready pla
 - **Storage**: AWS S3 / Azure Blob Storage
 - **Email**: AWS SES / SendGrid
 - **Containerization**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions (planned)
+- **CI/CD**: GitHub Actions (Implemented)
 
 ---
 
@@ -361,7 +362,9 @@ Unit tests validate individual functions and components in isolation, preventing
                   - CI example: `.github/workflows/ci.yml`
 
                 See comments in those files for setup, usage, and best practices.
-### Base URL
+
+---
+## 📚 API Documentation
 - Development: `http://localhost:3000/api`
 - Production: `https://your-domain.com/api`
 
