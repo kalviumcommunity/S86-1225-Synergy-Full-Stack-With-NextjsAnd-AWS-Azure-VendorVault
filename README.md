@@ -1,4 +1,34 @@
-﻿
+﻿## 📚 API & System Documentation
+
+### API Documentation (Postman)
+- All API endpoints are documented in Postman collections:
+  - [postman-collection.json](vendorvault/postman-collection.json) (File Upload, Files API)
+  - [postman-jwt-auth-collection.json](vendorvault/postman-jwt-auth-collection.json) (JWT Auth flow)
+- Import these files into Postman for interactive API docs and testing.
+- **Version:** 1.0.0  
+  **Base URL:** http://localhost:3000 (dev) / https://your-prod-url.com (prod)  
+  **Auth:** Bearer Token (JWT)  
+  **Last updated:** January 6, 2026
+
+### Architecture Documentation
+- See [ARCHITECTURE.md](ARCHITECTURE.md) for:
+  - System overview, tech stack, and core modules
+  - Directory structure and data flow
+  - Deployment and CI/CD architecture
+  - Onboarding and maintenance instructions
+
+### API Docs Screenshot
+![API Docs Screenshot](deployment/screenshots/api-docs-sample.png)
+
+### Documentation Process & Reflection
+- API docs are updated with every major change and exported as Postman collections.
+- Architecture docs are maintained in `ARCHITECTURE.md` and reviewed each sprint.
+- Documentation is a required part of PRs and release checklists.
+- This process ensures new contributors can onboard quickly, clients can integrate with confidence, and the system remains maintainable.
+- Plans: Automate API doc export in CI/CD and add a changelog for every release.
+
+---
+
 ## 🔄 CI/CD Pipeline
 
 ### GitHub Actions Continuous Integration
